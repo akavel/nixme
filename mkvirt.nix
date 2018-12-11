@@ -37,7 +37,7 @@ let
   interceptor = writeScript "interceptor" ''
     #!${bash}/bin/bash
     mkdir -p ${home}/var/log
-    strace -f -o "${home}/var/log/interceptor.log" -e none -e read=0,1,2 -e write=0,1,2 "${home}/.nix-profile/bin/nix-store" --serve
+    strace -f -o "${home}/var/log/interceptor.log" -e read,write -e read=0,1,2 -e write=0,1,2 "${home}/.nix-profile/bin/nix-store" --serve
   '';
 
   home = builtins.getEnv "HOME";
