@@ -27,7 +27,7 @@ let
     iso="$(echo ${iso builtins.currentSystem}/iso/nixos-*-linux.iso)"
     ${qemu_kvm}/bin/qemu-img  create -f qcow2  "$hda.tmp" "$size"
     keydir="$(mktemp -d)"
-    cp "$HOME/.ssh/id_rsa.pub" "$keydir/"
+    cp "$HOME/.ssh/id_rsa.pub" "$keydir/ssh.pub"
     ${qemu_kvm}/bin/qemu-kvm \
       -display vnc=127.0.0.1:99 \
       -m 512 \
