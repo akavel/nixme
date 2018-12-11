@@ -16,5 +16,8 @@ appropriate.
  - To do the above, I want to build a  special SSH service that would have the
    `nix-store` command overridden to capture stdin & stdout to a file (with
    `socat`, if easier?).
+    - sample command for testing:
+
+        $ nix copy --to ssh://localhost --from https://cache.nixos.org /nix/store/nkp4ck5scygkjk87nr6w61gb23li829m-hello-2.10
 
 
