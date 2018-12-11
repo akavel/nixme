@@ -13,6 +13,8 @@
 # - https://serverfault.com/questions/407497/how-do-i-configure-sshd-to-permit-a-single-command-without-giving-full-login-ac
 # - http://www.terminalinflection.com/strace-stdin-stdout/
 
+# NOTE: use together with:
+#  $ sudo `which socat` tcp-listen:22,fork tcp:localhost:$port
 let
   result = startSSH;
 
@@ -21,11 +23,11 @@ let
     set -xeuo pipefail
     port="$1"
 
-    ${openssh}/bin/sshd -D -f ${sshdConfig} -p "$port"
+    ${openssh}/bin/sshd -d -D -f ${sshdConfig} -p "$port"
   '';
 
   sshdConfig = writeText "sshd_config" ''
-    UsePrivilegeSeparation no
+    #UsePrivilegeSeparation no
     HostKey "${home}/.ssh/id_rsa"
     PidFile "${home}/var/run/sshd.pid"
     AuthorizedKeysFile "${home}/.ssh/id_rsa.pub"
@@ -35,7 +37,7 @@ let
   interceptor = writeScript "interceptor" ''
     #!${bash}/bin/bash
     mkdir -p ${home}/var/log
-    strace -f -o "${home}/var/log/interceptor.log" -e read,write -e read=0,1,2 -e write=0,1,2 nix-store --serve
+    strace -f -o "${home}/var/log/interceptor.log" -e none -e read=0,1,2 -e write=0,1,2 "${home}/.nix-profile/bin/nix-store" --serve
   '';
 
   home = builtins.getEnv "HOME";
