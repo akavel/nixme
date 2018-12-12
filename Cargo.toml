@@ -5,3 +5,13 @@ authors = ["Mateusz Czapliński <czapkofan@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+#iter-read = "0.2.0"
+## TODO: use one of:
+## - https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html
+## - https://docs.rs/futures/0.2.1/futures/channel/index.html
+## - https://github.com/crossbeam-rs/crossbeam/tree/master/crossbeam-channel
+
+[dev-dependencies]
+mock-io = { git = "https://github.com/carllerche/mock-io" }
+# TODO: to use: extern crate mock_io;
+
