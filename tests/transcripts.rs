@@ -4,5 +4,5 @@ use mock_io::Builder;
 
 #[test]
 fn existing_pkg_iodump() {
-    let builder = Builder::open("testdata/a01-existing-pkg.iodump").unwrap();
+    let builder = Builder::open("tests/transcripts/a01-existing-pkg.iodump").unwrap();
 }
