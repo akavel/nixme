@@ -18,6 +18,9 @@ appropriate.
    `socat`, if easier?).
     - sample command for testing:
 
-        $ nix copy --to ssh://localhost --from https://cache.nixos.org /nix/store/nkp4ck5scygkjk87nr6w61gb23li829m-hello-2.10
+            $ nix copy --to ssh://localhost --from https://cache.nixos.org /nix/store/nkp4ck5scygkjk87nr6w61gb23li829m-hello-2.10
 
+        Environment:
 
+            $ nix build mkvirt.nix && ./result 2022                     # will start SSH server
+            $ sudo `which socat` tcp-listen:22,fork tcp:localhost:2022  # will redirect port 22 to 2022
