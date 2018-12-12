@@ -13,7 +13,7 @@ appropriate.
    then calls `nix-store --serve` on target machine.
    **We must capture the protocol that ensues, to be able to reproduce it
    later.**
- - To do the above, I want to build a  special SSH service that would have the
+ - To do the above, I want to build a special SSH service that would have the
    `nix-store` command overridden to capture stdin & stdout to a file (with
    `socat`, if easier?).
     - sample command for testing:
@@ -22,5 +22,5 @@ appropriate.
 
         Environment:
 
-            $ nix build mkvirt.nix && ./result 2022                     # will start SSH server
+            $ nix build dumper.nix && ./result 2022                     # will start SSH server
             $ sudo `which socat` tcp-listen:22,fork tcp:localhost:2022  # will redirect port 22 to 2022
