@@ -1,4 +1,4 @@
-// use nixme;
+use nixme;
 extern crate mock_io;
 use mock_io::Builder;
 use std::io::Read;
@@ -11,4 +11,5 @@ fn existing_pkg_iodump() {
     assert_eq!(16, mock.read(&mut buf).unwrap());
     // assert_eq!(&buf[..11], b"hello world");
     assert_eq!(11, mock.write(b"hello world").unwrap());
+    nixme::serve(&mut mock).unwrap();
 }
