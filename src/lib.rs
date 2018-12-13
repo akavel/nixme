@@ -26,27 +26,12 @@ pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
 
     // Handle commands.
     loop {
-        // TODO(akavel): how to properly handle EOF?
         let cmd = match stream.read_u64::<LE>() {
             Ok(x) => x,
-            Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
+            Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
                 return Ok(());
-            },
-            // Err(e) => return Err(e)
-            // Err(ref e) => return Err(Error::from(e)),
-            // er @ Err(ref e) => return er,
-            Err(ref e) => return Err(Error::from(e.clone())),
-                // // TODO(akavel): make this block less ugly
-                // if let Some(cause) = e.cause() {
-                //     if let Some(err) = cause.downcast_ref::<io::Error>() {
-                //         if err.kind() == ErrorKind::UnexpectedEof {
-                //             return Ok(());
-                //         }
-                //     }
-                // }
-                // println!("ERR: {:?}", e);
-                // let () = e;
-                // return Err(Error::from(e));
+            }
+            Err(e) => return Err(Error::from(e)),
         };
     }
 }
