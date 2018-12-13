@@ -10,3 +10,4 @@ failure = "0.1.3"
 
 [dev-dependencies]
 mock-io = { git = "https://github.com/akavel/mock-io" }
+io-dump = { git = "https://github.com/carllerche/io-dump" }
