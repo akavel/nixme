@@ -1,7 +1,8 @@
 use byteorder::{ReadBytesExt, WriteBytesExt, LE};
-use failure::{bail, Error, Fail, ResultExt};
+use failure::{bail, Error, ResultExt};
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use std::{
-    io,
     io::{ErrorKind, Read, Write},
 };
 
@@ -20,7 +21,7 @@ pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
     }
     stream.write_u64::<LE>(SERVE_MAGIC_2)?;
     stream.write_u64::<LE>(SERVE_PROTOCOL_VERSION)?;
-    let clientVersion = stream
+    let _clientVersion = stream
         .read_u64::<LE>()
         .context("cannot read client version")?;
 
@@ -33,6 +34,14 @@ pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
             }
             Err(e) => return Err(Error::from(e)),
         };
+        match FromPrimitive::from_u64(cmd) {
+            Some(Command::QueryValidPaths) => {
+                println!("query v.p.!");
+            }
+            _ => {
+                panic!("unknown cmd {}", cmd);
+            }
+        }
     }
 }
 
@@ -40,3 +49,8 @@ const SERVE_MAGIC_1: u64 = 0x390c9deb;
 const SERVE_MAGIC_2: u64 = 0x5452eecb;
 // TODO(akavel): use protocol version 0x205
 const SERVE_PROTOCOL_VERSION: u64 = 0x204;
+
+#[derive(FromPrimitive)]
+enum Command {
+    QueryValidPaths = 1,
+}
