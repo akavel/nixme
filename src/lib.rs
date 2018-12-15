@@ -6,6 +6,8 @@ use std::{
     io::{ErrorKind, Read, Write},
 };
 
+mod serde_nix;
+
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc

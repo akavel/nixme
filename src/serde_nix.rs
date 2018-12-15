@@ -9,17 +9,19 @@
 
 // use serde_derive::{Deserialize, Serialize};
 
-pub use de::{from_reader, Deserializer};
-pub use error::{Error, Result};
-pub use ser::{to_writer, Serializer};
+// TODO(akavel): publish what should be published:
+// pub use de::{from_reader, Deserializer};
+// pub use error::{Error, Result};
+// pub use ser::{to_writer, Serializer};
 
-mod de;
-mod ser;
+// mod de;
+
 
 mod ser {
+    use std::io;
     use serde::ser::{self, Serialize};
     use byteorder::{WriteBytesExt, LE};
-    use error::{Error, Result}; // TODO(akavel): do I need this line?
+    use super::error::{Error, Result}; // TODO(akavel): do I need this line?
 
     pub struct Serializer<W> {
         writer: W,
@@ -44,20 +46,21 @@ mod ser {
         // Boilerplate for serde
         type Ok = ();
         type Error = Error;
-        // TODO(akavel): Associated types for keeping extra state when serializing non-primitive
-        // (a.k.a. compound) data structures (such as struct, map, ...), for serde. If no extra
-        // state is needed, Self can be used.
-        // type SerializeSeq = Self;
-        // type SerializeTuple = Self;
-        // type SerializeTupleStruct = Self;
-        // type SerializeTupleTupleVariant = Self;
-        // type SerializeMap = Self;
-        // type SerializeStruct = Self;
-        // type SerializeStructVariant = Self;
+        // Associated types for keeping extra state when serializing non-primitive (a.k.a.
+        // compound) data structures (such as struct, map, ...), for serde. If no extra state is
+        // needed, Self can be used.
+        // FIXME(akavel): should those be Self or something more advanced??? or how to disable???
+        type SerializeSeq = Self;
+        type SerializeTuple = Self;
+        type SerializeTupleStruct = Self;
+        type SerializeTupleVariant = Self;
+        type SerializeMap = Self;
+        type SerializeStruct = Self;
+        type SerializeStructVariant = Self;
 
         // The basic building blocks of the protocol: functions serializing the types: u64 and [u8].
         fn serialize_u64(self, v: u64) -> Result<()> {
-            self.writer.write_u64<LE>(v)  // TODO(akavel): do I need a .map_err(Error) here maybe?
+            self.writer.write_u64::<LE>(v)  // TODO(akavel): do I need a .map_err(Error) here maybe?
         }
         fn serialize_bytes(self, v: &[u8]) -> Result<()> {
             let n = v.len();
@@ -76,9 +79,15 @@ mod ser {
         // fn serialize_str(self, v: &str) -> Result<()> {
         //     // FIXME(akavel): super important: what encoding is used by Nix for strings in the protocol?
         //     self.serialize_bytes(
+    }
+
+    // #[cfg(test)]
+    // mod tests {
+    //     #[test]
+    // }
 }
 
-mod error {
+pub mod error {
     use std;
     use serde::{de, ser};
 
@@ -88,23 +97,23 @@ mod error {
     // TODO(akavel): understand what's going on here; generally copied some minimum from the serde guide
     #[derive(Clone, Debug, PartialEq)]
     pub enum Error {
-        Message(string),
+        Message(String),
         UnexpectedEof,
     }
 
     // Some boilerplate (?)
     impl ser::Error for Error {
-        fn custom<T: Display>(msg: T) -> Self {
+        fn custom<T: std::fmt::Display>(msg: T) -> Self {
             Error::Message(msg.to_string())
         }
     }
     impl de::Error for Error {
-        fn custom<T: Display>(msg: T) -> Self {
+        fn custom<T: std::fmt::Display>(msg: T) -> Self {
             Error::Message(msg.to_string())
         }
     }
-    impl Display for Error {
-        fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    impl std::fmt::Display for Error {
+        fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str(std::error::Error::description(self))
         }
     }
