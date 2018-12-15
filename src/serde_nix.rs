@@ -133,6 +133,25 @@ pub mod de {
         //     self.reader.read_exact(&mut padding[..super::pad(n as usize)])?;
         //     Ok(&buf)
         // }
+
+        // Helper functions, converting the basic protocol atoms into other types
+        fn read_bool(&mut self) -> Result<bool> {
+            // TODO(akavel): or should it be ... == 1 ?
+            Ok(self.read_u64()? != 0)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use hex_literal::{hex, hex_impl};
+        use super::Deserializer;
+
+        #[test]
+        fn test_read_bool() {
+            assert_eq!(false, Deserializer { reader: &hex!("00 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
+            assert_eq!(true,  Deserializer { reader: &hex!("01 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
+            assert_eq!(true,  Deserializer { reader: &hex!("ff ff ff ff  ff ff ff ff")[..] }.read_bool().unwrap());
+        }
     }
 }
 
