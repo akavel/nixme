@@ -14,6 +14,7 @@
 
 // Internal function, used to calculate length of 0-padding for byte slices in Nix protocol.
 // n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
+// FIXME(akavel): should below fn take u64 instead?
 const fn pad(n: usize) -> usize {
     (8 - n%8) % 8
 }
@@ -134,10 +135,36 @@ pub mod de {
         //     Ok(&buf)
         // }
 
+        //
         // Helper functions, converting the basic protocol atoms into other types
+        //
+
         fn read_bool(&mut self) -> Result<bool> {
             // TODO(akavel): or should it be ... == 1 ?
             Ok(self.read_u64()? != 0)
+        }
+
+        // Read a string composed only of printable 7-bit ASCII characters and space, with a
+        // maximum length as specified. If longer string was found, or non-fitting bytes, return
+        // error.
+        fn read_str_ascii(max: u64) -> Result<&mut str> {
+            let n = self.read_u64()?;
+            if n > max {
+                // FIXME(akavel): add offset info in the error
+                return ProtocolError::Message(fmt!("string too long, expected max {} bytes, got {}", max, n));
+            }
+            let mut buf = vec![0; n];
+            self.reader.read_exact(&mut buf)?;
+            let mut padding = [0; 7];
+            self.reader.read_exact(&mut padding[..super::pad(n as usize)])?;
+            // Verify string contents
+            if !buf.iter().all(|b| (b'a' <= b && b <= b'z') ||
+                                   (b'A' <= b && b <= b'Z') ||
+                                   (b'0' <= b && b <= b'9') ||
+                                   b" `~!@#$%^&*()_+-=[]{};':\"\\|,./<>?".contains(b)) {
+                return ProtocolError::Message(fmt!("unexpected byte in string: {}", buf));
+            }
+            Ok(std::str::from_utf8_mut(&mut buf)?)
         }
     }
 
