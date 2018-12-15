@@ -60,18 +60,41 @@ mod ser {
     mod tests {
         use hex_literal::{hex, hex_impl};
 
-        // TODO(akavel): try macro-driven tests - see:
+        // NOTE(akavel): macro-driven tests, based on:
         // https://github.com/coriolinus/exercism_rust/commit/e94389860c7126f5c562cd415d51589bf035d9df
         // https://github.com/BurntSushi/fst/blob/715919a1bf658501f9028dbc5c3b7ebb5a508ea2/src/raw/tests.rs#L111-L158
-        #[test]
-        fn write_bytes_len1() {
-            let mut buf = std::vec::Vec::new();
-            super::Serializer::new(&mut buf).write_bytes(b"A").unwrap();
-            assert_eq!(buf, hex!("
-                01000000 00000000
-                41000000 00000000
-            "));
+        macro_rules! test_write_bytes {
+            ($name:ident, $input:expr, $expect:expr) => {
+                #[test]
+                fn $name() {
+                    let mut buf = std::vec::Vec::new();
+                    super::Serializer::new(&mut buf).write_bytes($input).unwrap();
+                    assert_eq!(buf, $expect);
+                }
+            }
         }
+
+        test_write_bytes!(write_bytes_len1, b"A", hex!("
+            01 00 00 00  00 00 00 00
+            41 00 00 00  00 00 00 00
+        "));
+        test_write_bytes!(write_bytes_len2, b"AB", hex!("
+            02 00 00 00  00 00 00 00
+            41 42 00 00  00 00 00 00
+        "));
+        test_write_bytes!(write_bytes_len8, b"AAAABBBB", hex!("
+            08 00 00 00  00 00 00 00
+            41 41 41 41  42 42 42 42
+        "));
+        test_write_bytes!(write_bytes_len9, b"AAAABBBBC", hex!("
+            09 00 00 00  00 00 00 00
+            41 41 41 41  42 42 42 42
+            43 00 00 00  00 00 00 00
+        "));
+        // TODO(akavel): should 0-byte strings be supported? or should it be an error?
+        test_write_bytes!(write_bytes_len0, b"", hex!("
+            00 00 00 00  00 00 00 00
+        "));
     }
 }
 
