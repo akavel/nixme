@@ -43,7 +43,7 @@ mod ser {
             // TODO(akavel): modulus or remainder? also, make sure what types are used in the expression
             // FIXME(akavel): tests!!!
             let pad = (8 - n % 8) % 8;  // n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
-            let padding = vec![7; 0];
+            let padding = vec![0; 7];
             self.writer.write_all(&padding[..pad])?;
             Ok(())
         }
@@ -56,10 +56,23 @@ mod ser {
         //     self.serialize_bytes(
     }
 
-    // #[cfg(test)]
-    // mod tests {
-    //     #[test]
-    // }
+    #[cfg(test)]
+    mod tests {
+        use hex_literal::{hex, hex_impl};
+
+        // TODO(akavel): try macro-driven tests - see:
+        // https://github.com/coriolinus/exercism_rust/commit/e94389860c7126f5c562cd415d51589bf035d9df
+        // https://github.com/BurntSushi/fst/blob/715919a1bf658501f9028dbc5c3b7ebb5a508ea2/src/raw/tests.rs#L111-L158
+        #[test]
+        fn write_bytes_len1() {
+            let mut buf = std::vec::Vec::new();
+            super::Serializer::new(&mut buf).write_bytes(b"A").unwrap();
+            assert_eq!(buf, hex!("
+                01000000 00000000
+                41000000 00000000
+            "));
+        }
+    }
 }
 
 pub mod error {

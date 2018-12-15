@@ -12,5 +12,7 @@ num-traits = "0.2"
 num-derive = "0.2"
 
 [dev-dependencies]
+# TODO(akavel): why below crates are not on crates.io?
 mock-io = { git = "https://github.com/akavel/mock-io" }
 io-dump = { git = "https://github.com/carllerche/io-dump" }
+hex-literal = "0.1.1"
