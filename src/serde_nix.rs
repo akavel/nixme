@@ -217,7 +217,8 @@ pub mod de {
                 hex!("62 6d 35 73 6b 79 31 38  32 66 76 32 78 77 66 68"), // bm5sky182fv2xwfh |
                 hex!("66 61 70 2d 67 6c 69 62  63 2d 32 2e 32 36 2d 31"), // fap-glibc-2.26-1 |
                 hex!("33 31 00 00 00 00 00 00  38 00 00 00 00 00 00 00"), // 31......8....... |
-            ].concat();
+            ]
+            .concat();
             let mut deserializer = Deserializer { reader: &buf[..] };
             assert_eq!(
                 deserializer.read_str_ascii(100).unwrap(),
