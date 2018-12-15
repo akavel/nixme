@@ -208,6 +208,22 @@ pub mod de {
             assert_eq!(true,  Deserializer { reader: &hex!("01 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
             assert_eq!(true,  Deserializer { reader: &hex!("ff ff ff ff  ff ff ff ff")[..] }.read_bool().unwrap());
         }
+
+        #[test]
+        fn test_read_sample_string() {
+            let buf = [
+                hex!("3a 00 00 00 00 00 00 00  2f 6e 69 78 2f 73 74 6f"), // :......./nix/sto |
+                hex!("72 65 2f 32 6b 63 72 6a  31 6b 73 64 32 61 31 34"), // re/2kcrj1ksd2a14 |
+                hex!("62 6d 35 73 6b 79 31 38  32 66 76 32 78 77 66 68"), // bm5sky182fv2xwfh |
+                hex!("66 61 70 2d 67 6c 69 62  63 2d 32 2e 32 36 2d 31"), // fap-glibc-2.26-1 |
+                hex!("33 31 00 00 00 00 00 00  38 00 00 00 00 00 00 00"), // 31......8....... |
+            ].concat();
+            let mut deserializer = Deserializer { reader: &buf[..] };
+            assert_eq!(
+                deserializer.read_str_ascii(100).unwrap(),
+                "/nix/store/2kcrj1ksd2a14bm5sky182fv2xwfhfap-glibc-2.26-131"
+            );
+        }
     }
 }
 
