@@ -185,9 +185,9 @@ pub mod de {
             }
             if let Some(bad_byte) = buf.iter().find(|&&b| !is_ok(b)) {
                 return protocol_error!(
-                    "unexpected byte '{}' (hex {}) in string: {:x?}",
+                    "unexpected byte '{}' (hex {:02x}) parsing bytes as string: {:02x?}",
+                    (*bad_byte as char).escape_default(),
                     bad_byte,
-                    *bad_byte as char,
                     buf.as_slice()
                 );
             }
@@ -222,6 +222,26 @@ pub mod de {
             assert_eq!(
                 deserializer.read_str_ascii(100).unwrap(),
                 "/nix/store/2kcrj1ksd2a14bm5sky182fv2xwfhfap-glibc-2.26-131"
+            );
+        }
+
+        #[test]
+        fn test_read_str_ascii_rejects_00() {
+            let buf = hex!("01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00");
+            let mut deserializer = Deserializer { reader: &buf[..] };
+            assert_eq!(
+                deserializer.read_str_ascii(100).unwrap_err().to_string(),
+                "unexpected byte '\\u{0}' (hex 00) parsing bytes as string: [00]"
+            );
+        }
+
+        #[test]
+        fn test_read_str_ascii_rejects_ff() {
+            let buf = hex!("01 00 00 00 00 00 00 00  ff 00 00 00 00 00 00 00");
+            let mut deserializer = Deserializer { reader: &buf[..] };
+            assert_eq!(
+                deserializer.read_str_ascii(100).unwrap_err().to_string(),
+                "unexpected byte '\\u{ff}' (hex ff) parsing bytes as string: [ff]"
             );
         }
     }
