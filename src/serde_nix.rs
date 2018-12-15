@@ -16,7 +16,7 @@
 // n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
 // FIXME(akavel): should below fn take u64 instead?
 const fn pad(n: usize) -> usize {
-    (8 - n%8) % 8
+    (8 - n % 8) % 8
 }
 
 // Based on source code of the std::fmt::format! macro.
@@ -31,12 +31,11 @@ macro_rules! protocol_error {
     )
 }
 
-
 // TODO(akavel): modify modules names to not confuse anybody that we're using Serde (we're not
 // because I understood it's not what they're for; but the module structure is educated by Serde).
 mod ser {
-    use std::io;
     use byteorder::{WriteBytesExt, LE};
+    use std::io;
     // use super::error::{Error, Result}; // TODO(akavel): do I need this line?
     use super::error::Result; // TODO(akavel): do I need this line?
 
@@ -44,16 +43,17 @@ mod ser {
         writer: W,
     }
 
-    impl<W> Serializer<W> where W: io::Write {
+    impl<W> Serializer<W>
+    where
+        W: io::Write,
+    {
         pub fn new(writer: W) -> Self {
-            Serializer {
-                writer: writer,
-            }
+            Serializer { writer: writer }
         }
 
         // The basic building blocks of the protocol: functions serializing the types: u64 and [u8].
         fn write_u64(&mut self, v: u64) -> Result<()> {
-            self.writer.write_u64::<LE>(v)?;  // TODO(akavel): do I need a .map_err(Error) here maybe?
+            self.writer.write_u64::<LE>(v)?; // TODO(akavel): do I need a .map_err(Error) here maybe?
             Ok(())
         }
         fn write_bytes(&mut self, v: &[u8]) -> Result<()> {
@@ -90,50 +90,55 @@ mod ser {
                     super::Serializer::new(&mut buf).$method($input).unwrap();
                     assert_eq!(buf, $expect);
                 }
-            }
+            };
         }
 
-        test!(write_bytes, write_bytes_len1, b"A", hex!("
+        #[rustfmt::skip] test!(write_bytes, write_bytes_len1, b"A", hex!("
             01 00 00 00  00 00 00 00
             41 00 00 00  00 00 00 00
         "));
-        test!(write_bytes, write_bytes_len2, b"AB", hex!("
+        #[rustfmt::skip] test!(write_bytes, write_bytes_len2, b"AB", hex!("
             02 00 00 00  00 00 00 00
             41 42 00 00  00 00 00 00
         "));
-        test!(write_bytes, write_bytes_len8, b"AAAABBBB", hex!("
+        #[rustfmt::skip] test!(write_bytes, write_bytes_len8, b"AAAABBBB", hex!("
             08 00 00 00  00 00 00 00
             41 41 41 41  42 42 42 42
         "));
-        test!(write_bytes, write_bytes_len9, b"AAAABBBBC", hex!("
+        #[rustfmt::skip] test!(write_bytes, write_bytes_len9, b"AAAABBBBC", hex!("
             09 00 00 00  00 00 00 00
             41 41 41 41  42 42 42 42
             43 00 00 00  00 00 00 00
         "));
         // TODO(akavel): should 0-byte strings be supported? or should it be an error?
-        test!(write_bytes, write_bytes_len0, b"", hex!("
+        #[rustfmt::skip] test!(write_bytes, write_bytes_len0, b"", hex!("
             00 00 00 00  00 00 00 00
         "));
 
-        test!(write_bool, write_bool_true,  true,  hex!("01 00 00 00  00 00 00 00"));
-        test!(write_bool, write_bool_false, false, hex!("00 00 00 00  00 00 00 00"));
+        #[rustfmt::skip] test!(write_bool, write_bool_true,  true,  hex!("01 00 00 00  00 00 00 00"));
+        #[rustfmt::skip] test!(write_bool, write_bool_false, false, hex!("00 00 00 00  00 00 00 00"));
     }
 }
 
 pub mod de {
-    use std::io;
-    use byteorder::{ReadBytesExt, LE};
     use super::error::{ProtocolError, Result};
+    use byteorder::{ReadBytesExt, LE};
     use failure;
+    use std::io;
 
     pub struct Deserializer<R> {
         reader: R,
     }
 
-    impl<R> Deserializer<R> where R: io::Read {
+    impl<R> Deserializer<R>
+    where
+        R: io::Read,
+    {
         fn read_u64(&mut self) -> Result<u64> {
             // TODO(akavel): is there a way to make below map_err unnecessary, or simplify it?
-            self.reader.read_u64::<LE>().map_err(|e| failure::Error::from(e))
+            self.reader
+                .read_u64::<LE>()
+                .map_err(|e| failure::Error::from(e))
         }
 
         // fn read_bytes(&mut self) -> Result<&[u8]> {
@@ -169,17 +174,22 @@ pub mod de {
             let mut buf = vec![0; n as usize];
             self.reader.read_exact(&mut buf)?;
             let mut padding = [0; 7];
-            self.reader.read_exact(&mut padding[..super::pad(n as usize)])?;
+            self.reader
+                .read_exact(&mut padding[..super::pad(n as usize)])?;
             // Verify string contents
             fn is_ok(b: u8) -> bool {
-                (b'a' <= b && b <= b'z') ||
-                (b'A' <= b && b <= b'Z') ||
-                (b'0' <= b && b <= b'9') ||
-                b" `~!@#$%^&*()_+-=[]{};':\"\\|,./<>?".contains(&b)
+                (b'a' <= b && b <= b'z')
+                    || (b'A' <= b && b <= b'Z')
+                    || (b'0' <= b && b <= b'9')
+                    || b" `~!@#$%^&*()_+-=[]{};':\"\\|,./<>?".contains(&b)
             }
             if let Some(bad_byte) = buf.iter().find(|&&b| !is_ok(b)) {
-                return protocol_error!("unexpected byte '{}' (hex {}) in string: {:x?}",
-                    bad_byte, *bad_byte as char, buf.as_slice());
+                return protocol_error!(
+                    "unexpected byte '{}' (hex {}) in string: {:x?}",
+                    bad_byte,
+                    *bad_byte as char,
+                    buf.as_slice()
+                );
             }
             // TODO(akavel): optimize this with from_utf8_unchecked?
             Ok(String::from_utf8(buf)?)
@@ -188,10 +198,11 @@ pub mod de {
 
     #[cfg(test)]
     mod tests {
-        use hex_literal::{hex, hex_impl};
         use super::Deserializer;
+        use hex_literal::{hex, hex_impl};
 
         #[test]
+        #[rustfmt::skip]
         fn test_read_bool() {
             assert_eq!(false, Deserializer { reader: &hex!("00 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
             assert_eq!(true,  Deserializer { reader: &hex!("01 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
@@ -201,9 +212,9 @@ pub mod de {
 }
 
 pub mod error {
-    use std;
     use failure::Error;
     use failure_derive::Fail;
+    use std;
 
     pub type Result<T> = std::result::Result<T, Error>;
 
