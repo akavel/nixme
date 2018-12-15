@@ -19,6 +19,19 @@ const fn pad(n: usize) -> usize {
     (8 - n%8) % 8
 }
 
+// Based on source code of the std::fmt::format! macro.
+// TODO(akavel): can this be simplified? feels much overcomplicated, am I missing something?
+// TODO(akavel): this is internal; I'd prefer this further down, but macros must be defined before
+// used; TODO: move to separate file
+macro_rules! protocol_error {
+    ($($arg:tt)*) => (
+        Err(failure::Error::from(ProtocolError::Message {
+            msg: format!($($arg)*)
+        }))
+    )
+}
+
+
 // TODO(akavel): modify modules names to not confuse anybody that we're using Serde (we're not
 // because I understood it's not what they're for; but the module structure is educated by Serde).
 mod ser {
@@ -110,7 +123,7 @@ mod ser {
 pub mod de {
     use std::io;
     use byteorder::{ReadBytesExt, LE};
-    use super::error::Result;
+    use super::error::{ProtocolError, Result};
     use failure;
 
     pub struct Deserializer<R> {
@@ -147,24 +160,29 @@ pub mod de {
         // Read a string composed only of printable 7-bit ASCII characters and space, with a
         // maximum length as specified. If longer string was found, or non-fitting bytes, return
         // error.
-        fn read_str_ascii(max: u64) -> Result<&mut str> {
+        fn read_str_ascii(&mut self, max: u64) -> Result<String> {
             let n = self.read_u64()?;
             if n > max {
                 // FIXME(akavel): add offset info in the error
-                return ProtocolError::Message(fmt!("string too long, expected max {} bytes, got {}", max, n));
+                return protocol_error!("string too long, expected max {} bytes, got {}", max, n);
             }
-            let mut buf = vec![0; n];
+            let mut buf = vec![0; n as usize];
             self.reader.read_exact(&mut buf)?;
             let mut padding = [0; 7];
             self.reader.read_exact(&mut padding[..super::pad(n as usize)])?;
             // Verify string contents
-            if !buf.iter().all(|b| (b'a' <= b && b <= b'z') ||
-                                   (b'A' <= b && b <= b'Z') ||
-                                   (b'0' <= b && b <= b'9') ||
-                                   b" `~!@#$%^&*()_+-=[]{};':\"\\|,./<>?".contains(b)) {
-                return ProtocolError::Message(fmt!("unexpected byte in string: {}", buf));
+            fn is_ok(b: u8) -> bool {
+                (b'a' <= b && b <= b'z') ||
+                (b'A' <= b && b <= b'Z') ||
+                (b'0' <= b && b <= b'9') ||
+                b" `~!@#$%^&*()_+-=[]{};':\"\\|,./<>?".contains(&b)
             }
-            Ok(std::str::from_utf8_mut(&mut buf)?)
+            if let Some(bad_byte) = buf.iter().find(|&&b| !is_ok(b)) {
+                return protocol_error!("unexpected byte '{}' (hex {}) in string: {:x?}",
+                    bad_byte, *bad_byte as char, buf.as_slice());
+            }
+            // TODO(akavel): optimize this with from_utf8_unchecked?
+            Ok(String::from_utf8(buf)?)
         }
     }
 
