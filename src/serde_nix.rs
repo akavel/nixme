@@ -12,6 +12,12 @@
 
 // mod de;
 
+// Internal function, used to calculate length of 0-padding for byte slices in Nix protocol.
+// n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
+const fn pad(n: usize) -> usize {
+    (8 - n%8) % 8
+}
+
 // TODO(akavel): modify modules names to not confuse anybody that we're using Serde (we're not
 // because I understood it's not what they're for; but the module structure is educated by Serde).
 mod ser {
@@ -42,9 +48,8 @@ mod ser {
             self.writer.write_all(v)?;
             // TODO(akavel): modulus or remainder? also, make sure what types are used in the expression
             // FIXME(akavel): tests!!!
-            let pad = (8 - n % 8) % 8;  // n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
-            let padding = vec![0; 7];
-            self.writer.write_all(&padding[..pad])?;
+            let padding = [0; 7];
+            self.writer.write_all(&padding[..super::pad(n)])?;
             Ok(())
         }
         // Helper functions converting various types into a single u64 or [u8].
@@ -64,9 +69,9 @@ mod ser {
         // https://github.com/coriolinus/exercism_rust/commit/e94389860c7126f5c562cd415d51589bf035d9df
         // https://github.com/BurntSushi/fst/blob/715919a1bf658501f9028dbc5c3b7ebb5a508ea2/src/raw/tests.rs#L111-L158
         macro_rules! test {
-            ($method:ident, $name:ident, $input:expr, $expect:expr) => {
+            ($method:ident, $testname:ident, $input:expr, $expect:expr) => {
                 #[test]
-                fn $name() {
+                fn $testname() {
                     let mut buf = std::vec::Vec::new();
                     super::Serializer::new(&mut buf).$method($input).unwrap();
                     assert_eq!(buf, $expect);
@@ -98,6 +103,36 @@ mod ser {
 
         test!(write_bool, write_bool_true,  true,  hex!("01 00 00 00  00 00 00 00"));
         test!(write_bool, write_bool_false, false, hex!("00 00 00 00  00 00 00 00"));
+    }
+}
+
+pub mod de {
+    use std::io;
+    use byteorder::{ReadBytesExt, LE};
+    use super::error::Result;
+    use failure;
+
+    pub struct Deserializer<R> {
+        reader: R,
+    }
+
+    impl<R> Deserializer<R> where R: io::Read {
+        fn read_u64(&mut self) -> Result<u64> {
+            // TODO(akavel): is there a way to make below map_err unnecessary, or simplify it?
+            self.reader.read_u64::<LE>().map_err(|e| failure::Error::from(e))
+        }
+
+        // fn read_bytes(&mut self) -> Result<&[u8]> {
+        //     let n = self.read_u64()?;
+        //     // TODO(akavel): is there a way to simplify/shorten below lines?
+        //     // FIXME(akavel): limit n somehow??? now it can be >6 ZiB (a.k.a. 6 mln TiB) or
+        //     // something! Maybe instead return (n, io::Read) or something?
+        //     let mut buf = vec![0; n];
+        //     self.reader.read_exact(&mut buf)?;
+        //     let mut padding = [0; 7];
+        //     self.reader.read_exact(&mut padding[..super::pad(n as usize)])?;
+        //     Ok(&buf)
+        // }
     }
 }
 
