@@ -32,10 +32,11 @@ mod ser {
         }
 
         // The basic building blocks of the protocol: functions serializing the types: u64 and [u8].
-        fn write_u64(self, v: u64) -> Result<()> {
-            self.writer.write_u64::<LE>(v)  // TODO(akavel): do I need a .map_err(Error) here maybe?
+        fn write_u64(&mut self, v: u64) -> Result<()> {
+            self.writer.write_u64::<LE>(v)?;  // TODO(akavel): do I need a .map_err(Error) here maybe?
+            Ok(())
         }
-        fn write_bytes(self, v: &[u8]) -> Result<()> {
+        fn write_bytes(&mut self, v: &[u8]) -> Result<()> {
             let n = v.len();
             self.write_u64(n as u64)?;
             self.writer.write_all(v)?;
@@ -43,10 +44,11 @@ mod ser {
             // FIXME(akavel): tests!!!
             let pad = (8 - n % 8) % 8;  // n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
             let padding = vec![7; 0];
-            self.writer.write_all(&padding[..pad])
+            self.writer.write_all(&padding[..pad])?;
+            Ok(())
         }
         // Helper functions converting various types into a single u64 or [u8].
-        fn write_bool(self, v: bool) -> Result<()> {
+        fn write_bool(&mut self, v: bool) -> Result<()> {
             self.write_u64(if v { 1 } else { 0 })
         }
         // fn serialize_str(self, v: &str) -> Result<()> {
@@ -62,38 +64,41 @@ mod ser {
 
 pub mod error {
     use std;
+    use failure::Error;
+    use failure_derive::Fail;
 
     pub type Result<T> = std::result::Result<T, Error>;
 
     // TODO(akavel): add offset info for de, [LATER] add key info for ser
     // TODO(akavel): understand what's going on here; generally copied some minimum from the serde guide
-    #[derive(Clone, Debug, PartialEq)]
-    pub enum NixError {
-        Message(String),
+    #[derive(Debug, Fail)]
+    pub enum ProtocolError {
+        #[fail(display = "{}", msg)]
+        Message { msg: String },
+        #[fail(display = "unexpected end of input")]
         UnexpectedEof,
-        Io(std::io::Error),  // TODO(akavel): is this a right way to wrap io::Error-s?
     }
 
-    // Some boilerplate (?)
-    impl std::fmt::Display for Error {
-        fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str(std::error::Error::description(self))
-        }
-    }
+    // // Some boilerplate (?)
+    // impl std::fmt::Display for Error {
+    //     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    //         formatter.write_str(std::error::Error::description(self))
+    //     }
+    // }
 
-    // Error messages for the enum variants
-    impl std::error::Error for Error {
-        fn description(&self) -> &str {
-            match *self {
-                Error::Message(ref msg) => msg,
-                Error::UnexpectedEof => "unexpected end of input",
-            }
-        }
-    }
+    // // Error messages for the enum variants
+    // impl std::error::Error for Error {
+    //     fn description(&self) -> &str {
+    //         match *self {
+    //             Error::Message(ref msg) => msg,
+    //             Error::UnexpectedEof => "unexpected end of input",
+    //         }
+    //     }
+    // }
 
-    impl std::convert::From<std::io::Error> for Error {
-        fn from(e: std::io::Error) -> Error {
-            Error::Io(e)
-        }
-    }
+    // impl std::convert::From<std::io::Error> for Error {
+    //     fn from(e: std::io::Error) -> Error {
+    //         Error::Io(e)
+    //     }
+    // }
 }
