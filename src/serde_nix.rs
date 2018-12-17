@@ -39,20 +39,20 @@ pub mod ser {
     // use super::error::{Error, Result}; // TODO(akavel): do I need this line?
     use super::error::Result; // TODO(akavel): do I need this line?
 
-    pub struct Serializer<W> {
-        pub writer: W,
+    pub struct Serializer<'a, W> {
+        pub writer: &'a W,
     }
 
-    impl<W> Serializer<W>
+    impl<'a, W> Serializer<'a, W>
     where
         W: io::Write,
     {
         // The basic building blocks of the protocol: functions serializing the types: u64 and [u8].
-        fn write_u64(&mut self, v: u64) -> Result<()> {
+        pub fn write_u64(&mut self, v: u64) -> Result<()> {
             self.writer.write_u64::<LE>(v)?; // TODO(akavel): do I need a .map_err(Error) here maybe?
             Ok(())
         }
-        fn write_bytes(&mut self, v: &[u8]) -> Result<()> {
+        pub fn write_bytes(&mut self, v: &[u8]) -> Result<()> {
             let n = v.len();
             self.write_u64(n as u64)?;
             self.writer.write_all(v)?;
@@ -63,7 +63,7 @@ pub mod ser {
             Ok(())
         }
         // Helper functions converting various types into a single u64 or [u8].
-        fn write_bool(&mut self, v: bool) -> Result<()> {
+        pub fn write_bool(&mut self, v: bool) -> Result<()> {
             self.write_u64(if v { 1 } else { 0 })
         }
         // fn serialize_str(self, v: &str) -> Result<()> {
@@ -124,15 +124,15 @@ pub mod de {
     use failure;
     use std::io;
 
-    pub struct Deserializer<R> {
-        pub reader: R,
+    pub struct Deserializer<'a, R> {
+        pub reader: &'a R,
     }
 
-    impl<R> Deserializer<R>
+    impl<'a, R> Deserializer<'a, R>
     where
         R: io::Read,
     {
-        fn read_u64(&mut self) -> Result<u64> {
+        pub fn read_u64(&mut self) -> Result<u64> {
             // TODO(akavel): is there a way to make below map_err unnecessary, or simplify it?
             self.reader
                 .read_u64::<LE>()
@@ -155,7 +155,7 @@ pub mod de {
         // Helper functions, converting the basic protocol atoms into other types
         //
 
-        fn read_bool(&mut self) -> Result<bool> {
+        pub fn read_bool(&mut self) -> Result<bool> {
             // TODO(akavel): or should it be ... == 1 ?
             Ok(self.read_u64()? != 0)
         }
@@ -163,7 +163,7 @@ pub mod de {
         // Read a string composed only of printable 7-bit ASCII characters and space, with a
         // maximum length as specified. If longer string was found, or non-fitting bytes, return
         // error.
-        fn read_str_ascii(&mut self, max: u64) -> Result<String> {
+        pub fn read_str_ascii(&mut self, max: u64) -> Result<String> {
             let n = self.read_u64()?;
             if n > max {
                 // FIXME(akavel): add offset info in the error
