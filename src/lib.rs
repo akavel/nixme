@@ -4,9 +4,7 @@ use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 use failure::{bail, Error, ResultExt};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
-use std::{
-    io::{ErrorKind, Read, Write},
-};
+use std::io::{ErrorKind, Read, Write};
 
 mod serde_nix;
 

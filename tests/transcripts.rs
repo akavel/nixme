@@ -1,7 +1,7 @@
 use nixme;
 extern crate mock_io;
-use mock_io::Builder;
 use io_dump::Packets;
+use mock_io::Builder;
 use std::io::Read;
 use std::io::Write;
 
@@ -60,4 +60,3 @@ fn failed_pkg_receive_iodump() {
     );
     assert!(mock.write(b"X").is_err()); // TODO(akavel): something better should be used here
 }
-
