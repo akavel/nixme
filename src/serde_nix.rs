@@ -33,14 +33,14 @@ macro_rules! protocol_error {
 
 // TODO(akavel): modify modules names to not confuse anybody that we're using Serde (we're not
 // because I understood it's not what they're for; but the module structure is educated by Serde).
-mod ser {
+pub mod ser {
     use byteorder::{WriteBytesExt, LE};
     use std::io;
     // use super::error::{Error, Result}; // TODO(akavel): do I need this line?
     use super::error::Result; // TODO(akavel): do I need this line?
 
     pub struct Serializer<W> {
-        writer: W,
+        pub writer: W,
     }
 
     impl<W> Serializer<W>
@@ -125,7 +125,7 @@ pub mod de {
     use std::io;
 
     pub struct Deserializer<R> {
-        reader: R,
+        pub reader: R,
     }
 
     impl<R> Deserializer<R>

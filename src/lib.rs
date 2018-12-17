@@ -1,3 +1,5 @@
+use crate::serde_nix::de::Deserializer;
+use crate::serde_nix::ser::Serializer;
 use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 use failure::{bail, Error, ResultExt};
 use num_derive::FromPrimitive;
@@ -12,8 +14,8 @@ mod serde_nix;
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc
 pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
-    // TODO(akavel): add serde helper for reading u64 always as LE, reading strings, etc.
-
+    let ser = Serializer { writer: &stream };
+    let de = Deserializer { reader: &stream };
     // Exchange initial greeting.
     let magic = stream
         .read_u64::<LE>()
