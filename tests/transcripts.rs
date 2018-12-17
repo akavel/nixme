@@ -43,3 +43,21 @@ fn existing_pkg_iodump() {
     );
     assert!(mock.write(b"X").is_err()); // TODO(akavel): something better should be used here
 }
+
+#[test]
+fn failed_pkg_receive_iodump() {
+    let mut mock = Builder::open("tests/transcripts/b01-failed-import.iodump")
+        .unwrap()
+        .build();
+    nixme::serve(&mut mock).unwrap();
+
+    // Mock is empty.
+    let mut buf = [0; 16];
+    assert_eq!(
+        0,
+        mock.read(&mut buf).unwrap(),
+        "iodump not yet exhausted for reading"
+    );
+    assert!(mock.write(b"X").is_err()); // TODO(akavel): something better should be used here
+}
+
