@@ -29,18 +29,14 @@ pub fn serve(mut stream: &mut (impl Read + Write)) -> Result<(), Error> {
         let cmd = match stream.read_u64() {
             Ok(x) => x,
             Err(e) => {
+                // TODO(akavel): put below block in helper func, then call it from guard expression
                 if let Some(ref cause) = e.downcast_ref::<std::io::Error>() {
                     if cause.kind() == ErrorKind::UnexpectedEof {
                         return Ok(());
                     }
                 }
                 return Err(e);
-                // return Err(Error::from(e))
             }
-            // Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-            //     return Ok(());
-            // }
-            // Err(e) => return Err(Error::from(e)),
         };
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
