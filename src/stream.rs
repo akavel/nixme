@@ -70,7 +70,7 @@ where
         // TODO(akavel): is there a way to make below map_err unnecessary, or simplify it?
         self.stream
             .read_u64::<LE>()
-            .map_err(|e| failure::Error::from(e))
+            .map_err(failure::Error::from)
     }
 
     // fn read_bytes(&mut self) -> Result<&[u8]> {

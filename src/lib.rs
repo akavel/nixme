@@ -22,7 +22,7 @@ pub fn serve(mut stream: &mut (impl Read + Write)) -> Result<(), Error> {
     }
     stream.write_u64(SERVE_MAGIC_2)?;
     stream.write_u64(SERVE_PROTOCOL_VERSION)?;
-    let _clientVersion = stream.read_u64().context("cannot read client version")?;
+    let _client_version = stream.read_u64().context("cannot read client version")?;
 
     // Handle commands.
     loop {
@@ -53,8 +53,8 @@ pub fn serve(mut stream: &mut (impl Read + Write)) -> Result<(), Error> {
     }
 }
 
-const SERVE_MAGIC_1: u64 = 0x390c9deb;
-const SERVE_MAGIC_2: u64 = 0x5452eecb;
+const SERVE_MAGIC_1: u64 = 0x390c_9deb;
+const SERVE_MAGIC_2: u64 = 0x5452_eecb;
 // TODO(akavel): use protocol version 0x205
 const SERVE_PROTOCOL_VERSION: u64 = 0x204;
 
