@@ -123,6 +123,16 @@ where
         // TODO(akavel): optimize this with from_utf8_unchecked?
         Ok(String::from_utf8(buf)?)
     }
+
+    pub fn expect_str(&mut self, s: &str) -> Result<()> {
+        let r = self
+            .read_str_ascii(s.len())
+            .context(format!("expected '{}'", s))?;
+        if r != s {
+            return protocol_error!("expected '{}', got '{}'", s, r);
+        }
+        Ok(())
+    }
 }
 
 // Internal function, used to calculate length of 0-padding for byte slices in Nix protocol.
