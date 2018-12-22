@@ -57,4 +57,21 @@ const SERVE_PROTOCOL_VERSION: u64 = 0x204;
 #[derive(FromPrimitive)]
 enum Command {
     QueryValidPaths = 1,
+    QueryPathInfos = 2,
+    // cmdDumpStorePath = 3,
+    // cmdImportPaths = 4,
+    // cmdExportPaths = 5,
+    // cmdBuildPaths = 6,
+    // cmdQueryClosure = 7,
+    // cmdBuildDerivation = 8,
+    // cmdAddToStoreNar = 9,
 }
+
+fn handleQueryValidPaths(&mut stream: Stream) Result<(), Error> {
+    // TODO: read stuff
+    let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
+    let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
+    let _paths = stream.read_strings(100, 300)?;
+    // TODO: reply stuff
+}
+
