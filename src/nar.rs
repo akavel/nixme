@@ -98,6 +98,7 @@ where
         stream.expect_str("node")?;
         parse_node(&mut stream, handler, &(path.to_owned() + "/" + &name))?;
         prev_name = name;
+        stream.expect_str(")")?;
     }
 }
 
