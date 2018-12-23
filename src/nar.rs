@@ -58,7 +58,7 @@ fn parse_directory(&mut stream: Stream, &mut handler: impl Handler, path: String
 
 fn parse_symlink(&mut stream: Stream, &mut handler: impl Handler, path: String) -> Result<()> {
     handler.create_symlink(path, stream.read_str_ascii(max_target)?)?;
-    Ok(())
+    stream.expect(")")
 }
 
 const max_name = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
