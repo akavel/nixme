@@ -12,17 +12,28 @@ fn parse_simple_nar() {
     nar::parse(&mut stream, &mut handler).unwrap();
     assert_eq!(
         handler.buf,
-        "
+        r#"
 dir 
 dir /foo
 file /foo/bar = 0
+
 file /foo/baz = 0
+
 file /foo/data = 77
+lasjdöaxnasd
+asdom 12398
+ä"§Æẞ¢«»”alsd
+zażółć gęślą jaźń
+
 exec /foo/script.sh = 17
+echo hello world
+
 file /foo-x = 0
+
 file /qux = 0
+
 dir /zyx
-"
+"#
     );
 }
 
@@ -44,6 +55,8 @@ impl nar::Handler for MockHandler {
             // print!("file {} = {}\n", path, size);
             self.buf.push_str(&format!("file {} = {}\n", path, size));
         }
+        contents.read_to_string(&mut self.buf).unwrap();
+        self.buf.push_str("\n");
     }
 
     fn create_symlink(&mut self, path: &str, target: &str) {
