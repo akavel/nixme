@@ -64,7 +64,7 @@ fn parse_symlink(&mut stream: Stream, &mut handler: impl Handler, path: String) 
     stream.expect(")")
 }
 
-const max_name = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
-const max_target = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
+const max_name: u64 = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
+const max_target: u64 = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
 
-const NAR_VERSION_MAGIC_1 = "nix-archive-1";
+const NAR_VERSION_MAGIC_1: str = "nix-archive-1";

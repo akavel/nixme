@@ -13,7 +13,7 @@
 // mod de;
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LE};
-use failure;
+use failure::{self, ResultExt};
 use std::io;
 
 use self::error::{ProtocolError, Result};
@@ -126,7 +126,7 @@ where
 
     pub fn expect_str(&mut self, s: &str) -> Result<()> {
         let r = self
-            .read_str_ascii(s.len())
+            .read_str_ascii(s.len() as u64)
             .context(format!("expected '{}'", s))?;
         if r != s {
             return protocol_error!("expected '{}', got '{}'", s, r);

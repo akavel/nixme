@@ -5,6 +5,7 @@ use std::io::{ErrorKind, Read, Write};
 
 use crate::stream::Stream;
 mod stream;
+mod nar;
 
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
@@ -67,11 +68,11 @@ enum Command {
     // cmdAddToStoreNar = 9,
 }
 
-fn handleQueryValidPaths(&mut stream: Stream) Result<(), Error> {
-    // TODO: read stuff
-    let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
-    let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
-    let _paths = stream.read_strings(100, 300)?;
-    // TODO: reply stuff
-}
+// fn handleQueryValidPaths(&mut stream: Stream) -> Result<(), Error> {
+//     // TODO: read stuff
+//     let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
+//     let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
+//     let _paths = stream.read_strings(100, 300)?;
+//     // TODO: reply stuff
+// }
 

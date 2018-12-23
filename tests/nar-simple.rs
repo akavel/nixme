@@ -1,5 +1,6 @@
 use nixme::{nar, stream::Stream};
 use std::fs::File;
+use std::io::Reader;
 
 #[test]
 fn parse_simple_nar() {
@@ -13,7 +14,7 @@ file foo/bar
 }
 
 struct MockHandler {
-    pub buf: mut String;
+    pub buf: String;
 }
 
 impl nar::Handler for MockHandler {
