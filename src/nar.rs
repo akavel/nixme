@@ -10,13 +10,13 @@ pub trait Handler {
     fn create_symlink(&mut self, path: &str, target: &str);
 }
 
-pub fn parse<R, H>(mut stream: &mut Stream<R>, handler: &mut H) -> Result<()>
+pub fn parse<R, H>(stream: &mut Stream<R>, handler: &mut H) -> Result<()>
 where
     R: Read,
     H: Handler,
 {
     stream.expect_str(NAR_VERSION_MAGIC_1)?;
-    parse_node(&mut stream, handler, "")
+    parse_node(stream, handler, "")
 }
 
 // FIXME(akavel): why `use crate::stream::protocol_error;` didn't work for me, even with
@@ -29,7 +29,7 @@ macro_rules! protocol_error {
     )
 }
 
-fn parse_node<R, H>(mut stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
+fn parse_node<R, H>(stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
 where
     R: Read,
     H: Handler,
@@ -37,9 +37,9 @@ where
     stream.expect_str("(")?;
     stream.expect_str("type")?;
     match stream.read_str_ascii(20)?.as_ref() {
-        "regular" => parse_file(&mut stream, handler, path),
-        "directory" => parse_directory(&mut stream, handler, path),
-        "symlink" => parse_symlink(&mut stream, handler, path),
+        "regular" => parse_file(stream, handler, path),
+        "directory" => parse_directory(stream, handler, path),
+        "symlink" => parse_symlink(stream, handler, path),
         other => {
             return protocol_error!(
                 "unexpected node type, should be 'regular'/'directory'/'symlink': '{}'",
@@ -73,7 +73,7 @@ where
     stream.expect_str(")")
 }
 
-fn parse_directory<R, H>(mut stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
+fn parse_directory<R, H>(stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
 where
     R: Read,
     H: Handler,
@@ -96,7 +96,7 @@ where
             return protocol_error!("node name not sorted: '{}' <= '{}'", name, prev_name);
         }
         stream.expect_str("node")?;
-        parse_node(&mut stream, handler, &(path.to_owned() + "/" + &name))?;
+        parse_node(stream, handler, &(path.to_owned() + "/" + &name))?;
         prev_name = name;
         stream.expect_str(")")?;
     }
