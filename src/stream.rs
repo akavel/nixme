@@ -71,6 +71,15 @@ where
         self.stream.read_u64::<LE>().map_err(failure::Error::from)
     }
 
+    pub fn read_blob(&mut self) -> Result<(u64, impl io::Read + '_)> {
+        let n = self.read_u64()?;
+        let r = BlobRead {
+            reader: self.stream,
+            remaining: n,
+            padding: pad(n as usize),
+        };
+        return Ok((n, r));
+    }
     // fn read_bytes(&mut self) -> Result<&[u8]> {
     //     let n = self.read_u64()?;
     //     // TODO(akavel): is there a way to simplify/shorten below lines?
@@ -140,6 +149,36 @@ where
 // FIXME(akavel): should below fn take u64 instead?
 const fn pad(n: usize) -> usize {
     (8 - n % 8) % 8
+}
+
+struct BlobRead<'a, R: io::Read> {
+    reader: &'a mut R,
+    remaining: u64,
+    padding: usize,
+}
+
+impl<'a, R> io::Read for BlobRead<'a, R>
+where
+    R: io::Read,
+{
+    fn read(&mut self, buf: &mut [u8]) -> std::result::Result<usize, io::Error> {
+        self.reader.read(buf)
+    }
+}
+
+impl<'a, R> Drop for BlobRead<'a, R>
+where
+    R: io::Read,
+{
+    fn drop(&mut self) {
+        let mut buf = [0; 256];
+        while self.remaining > 256 {
+            self.reader.read_exact(&mut buf);
+            self.remaining -= 256;
+        }
+        self.reader.read_exact(&mut buf[..self.remaining as usize]);
+        self.reader.read_exact(&mut buf[..self.padding]);
+    }
 }
 
 #[cfg(test)]

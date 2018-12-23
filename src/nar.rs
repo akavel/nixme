@@ -10,7 +10,7 @@ pub trait Handler {
     fn create_symlink(&mut self, path: &str, target: &str);
 }
 
-pub fn parse<R, H>(stream: &mut Stream<R>, handler: &mut H) -> Result<()>
+pub fn parse<R, H>(mut stream: &mut Stream<R>, handler: &mut H) -> Result<()>
 where
     R: Read,
     H: Handler,
@@ -29,7 +29,7 @@ macro_rules! protocol_error {
     )
 }
 
-fn parse_node<R, H>(stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
+fn parse_node<R, H>(mut stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
 where
     R: Read,
     H: Handler,
@@ -62,8 +62,10 @@ where
     } else {
         s
     };
-    stream.expect_str("contents")?;
-    let (size, &mut blob_stream) = stream.read_blob()?;
+    if s != "contents" {
+        return protocol_error!("unexpected word, should be 'contents': {}", s);
+    }
+    let (size, mut blob_stream) = stream.read_blob()?;
     handler.create_file(path, executable, size, &mut blob_stream);
     stream.expect_str(")")
 }
