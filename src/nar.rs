@@ -1,6 +1,9 @@
 use crate::stream::{Stream, Result};
 
 pub trait Handler {
+    fn create_directory(&mut self, path: &str);
+    fn create_file(&mut self, path: &str, executable: bool, size: u64, &mut contents: impl Reader);
+    fn create_symlink(&mut self, path: &str, target: &str);
 }
 
 pub fn parse(&mut stream: Stream, &mut handler: impl Handler) -> Result<()> {
