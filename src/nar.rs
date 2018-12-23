@@ -65,12 +65,15 @@ where
     if s != "contents" {
         return protocol_error!("unexpected word, should be 'contents': {}", s);
     }
-    let (size, mut blob_stream) = stream.read_blob()?;
-    handler.create_file(path, executable, size, &mut blob_stream);
+    {
+        let (size, mut blob_stream) = stream.read_blob()?;
+        // let _z = &mut blob_stream;
+        handler.create_file(path, executable, size, &mut blob_stream);
+    }
     stream.expect_str(")")
 }
 
-fn parse_directory<R, H>(stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
+fn parse_directory<R, H>(mut stream: &mut Stream<R>, handler: &mut H, path: &str) -> Result<()>
 where
     R: Read,
     H: Handler,
@@ -92,9 +95,9 @@ where
         if name <= prev_name {
             return protocol_error!("node name not sorted: '{}' <= '{}'", name, prev_name);
         }
-        prev_name = name;
         stream.expect_str("node")?;
         parse_node(&mut stream, handler, &(path.to_owned() + "/" + &name))?;
+        prev_name = name;
     }
 }
 

@@ -4,8 +4,8 @@ use num_traits::FromPrimitive;
 use std::io::{ErrorKind, Read, Write};
 
 use crate::stream::Stream;
-mod stream;
-mod nar;
+pub mod stream;
+pub mod nar;
 
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:

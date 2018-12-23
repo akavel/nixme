@@ -71,6 +71,8 @@ where
         self.stream.read_u64::<LE>().map_err(failure::Error::from)
     }
 
+    // FIXME(akavel): make this return BlobRead, and remove Drop implementation - this should let
+    // us drop explicit scope blocks where it's used.
     pub fn read_blob(&mut self) -> Result<(u64, impl io::Read + '_)> {
         let n = self.read_u64()?;
         let r = BlobRead {
@@ -162,7 +164,14 @@ where
     R: io::Read,
 {
     fn read(&mut self, buf: &mut [u8]) -> std::result::Result<usize, io::Error> {
-        self.reader.read(buf)
+        let max = if buf.len() as u64 <= self.remaining {
+            buf.len()
+        } else {
+            self.remaining as usize
+        };
+        let n = self.reader.read(&mut buf[..max])?;
+        self.remaining -= n as u64;
+        return Ok(n);
     }
 }
 
