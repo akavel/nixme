@@ -1,14 +1,28 @@
-use crate::stream::{Stream, Result};
+use std::io::Read;
+
+use failure;
+
+use crate::stream::{error::ProtocolError, error::Result, Stream};
 
 pub trait Handler {
     fn create_directory(&mut self, path: &str);
-    fn create_file(&mut self, path: &str, executable: bool, size: u64, &mut contents: impl Reader);
+    fn create_file(&mut self, path: &str, executable: bool, size: u64, contents: &mut impl Read);
     fn create_symlink(&mut self, path: &str, target: &str);
 }
 
 pub fn parse(&mut stream: Stream, &mut handler: impl Handler) -> Result<()> {
     stream.expect_str(NAR_VERSION_MAGIC_1)?;
     parse_node(stream, "")
+}
+
+// FIXME(akavel): why `use crate::stream::protocol_error;` didn't work for me, even with
+// #[macro_export]?
+macro_rules! protocol_error {
+    ($($arg:tt)*) => (
+        Err(failure::Error::from(ProtocolError::Message {
+            msg: format!($($arg)*)
+        }))
+    )
 }
 
 fn parse_node(&mut stream: Stream, &mut handler: impl Handler, path: String) -> Result<()> {
@@ -18,18 +32,24 @@ fn parse_node(&mut stream: Stream, &mut handler: impl Handler, path: String) -> 
         "regular" => parse_file(&mut stream, &mut handler, path),
         "directory" => parse_directory(&mut stream, &mut handler, path),
         "symlink" => parse_symlink(&mut stream, &mut handler, path),
-        other =>
-            return protocol_error!("unexpected node type, should be 'regular'/'directory'/'symlink': '{}'", other),
+        other => {
+            return protocol_error!(
+                "unexpected node type, should be 'regular'/'directory'/'symlink': '{}'",
+                other
+            )
+        }
     }
 }
 
 fn parse_file(&mut stream: Stream, &mut handler: impl Handler, path: String) -> Result<()> {
     let s = stream.read_str_ascii(20)?;
-    let executable = (s == "executable");
+    let executable = s == "executable";
     let s = if executable {
         stream.expect_str("")?;
         stream.read_str_ascii(20)?
-    } else { s };
+    } else {
+        s
+    };
     stream.expect_str("contents")?;
     let (size, &mut blob_stream) = stream.read_blob()?;
     handler.create_file(path, executable, size, &mut blob_stream)?;
