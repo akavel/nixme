@@ -5,7 +5,7 @@ use std::io::Read;
 #[test]
 fn parse_simple_nar() {
     let mut f = File::open("tests/nar-simple/simple.nar").unwrap();
-    let mut stream = Stream { stream: &mut f };
+    let mut stream = Stream::new(&mut f);
     let mut handler = MockHandler {
         buf: "\n".to_owned(),
     };

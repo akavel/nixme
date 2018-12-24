@@ -10,10 +10,8 @@ pub mod nar;
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc
-pub fn serve(mut stream: &mut (impl Read + Write)) -> Result<(), Error> {
-    let mut stream = Stream {
-        stream: &mut stream,
-    };
+pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
+    let mut stream = Stream::new(stream);
     // Exchange initial greeting.
     let magic = stream
         .read_u64()

@@ -65,11 +65,8 @@ where
     if s != "contents" {
         return protocol_error!("unexpected word, should be 'contents': {}", s);
     }
-    {
-        let (size, mut blob_stream) = stream.read_blob()?;
-        // let _z = &mut blob_stream;
-        handler.create_file(path, executable, size, &mut blob_stream);
-    }
+    let (size, mut blob_stream) = stream.read_blob()?;
+    handler.create_file(path, executable, size, &mut blob_stream);
     stream.expect_str(")")
 }
 

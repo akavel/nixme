@@ -31,7 +31,17 @@ macro_rules! protocol_error {
 }
 
 pub struct Stream<'a, S> {
-    pub stream: &'a mut S,
+    stream: &'a mut S,
+    to_skip: u64, // how many bytes from S should be skipped before next read
+}
+
+impl<'a, S> Stream<'a, S> {
+    pub fn new(s: &'a mut S) -> Stream<'a, S> {
+        Stream {
+            stream: s,
+            to_skip: 0,
+        }
+    }
 }
 
 impl<'a, W> Stream<'a, W>
@@ -44,8 +54,8 @@ where
         Ok(())
     }
     pub fn write_bytes(&mut self, v: &[u8]) -> Result<()> {
-        let n = v.len();
-        self.write_u64(n as u64)?;
+        let n = v.len() as u64;
+        self.write_u64(n)?;
         self.stream.write_all(v)?;
         // TODO(akavel): modulus or remainder? also, make sure what types are used in the expression
         // FIXME(akavel): tests!!!
@@ -67,18 +77,18 @@ where
     R: io::Read,
 {
     pub fn read_u64(&mut self) -> Result<u64> {
+        self.skip()?;
         // TODO(akavel): is there a way to make below map_err unnecessary, or simplify it?
         self.stream.read_u64::<LE>().map_err(failure::Error::from)
     }
 
-    // FIXME(akavel): make this return BlobRead, and remove Drop implementation - this should let
-    // us drop explicit scope blocks where it's used.
-    pub fn read_blob(&mut self) -> Result<(u64, impl io::Read + '_)> {
+    pub fn read_blob(&mut self) -> Result<(u64, BlobRead<'_, R>)> {
         let n = self.read_u64()?;
+        self.to_skip = n + pad(n) as u64;
         let r = BlobRead {
             reader: self.stream,
             remaining: n,
-            padding: pad(n as usize),
+            parent_skip: &mut self.to_skip,
         };
         return Ok((n, r));
     }
@@ -93,6 +103,17 @@ where
     //     self.stream.read_exact(&mut padding[..pad(n as usize)])?;
     //     Ok(&buf)
     // }
+
+    fn skip(&mut self) -> Result<()> {
+        let mut buf = [0; 256];
+        while self.to_skip > buf.len() as u64 {
+            self.stream.read_exact(&mut buf)?;
+            self.to_skip -= buf.len() as u64;
+        }
+        self.stream.read_exact(&mut buf[..self.to_skip as usize])?;
+        self.to_skip = 0;
+        Ok(())
+    }
 
     //
     // Helper functions, converting the basic protocol atoms into other types
@@ -115,7 +136,7 @@ where
         let mut buf = vec![0; n as usize];
         self.stream.read_exact(&mut buf)?;
         let mut padding = [0; 7];
-        self.stream.read_exact(&mut padding[..pad(n as usize)])?;
+        self.stream.read_exact(&mut padding[..pad(n)])?;
         // Verify string contents
         fn is_ok(b: u8) -> bool {
             (b'a' <= b && b <= b'z')
@@ -148,15 +169,14 @@ where
 
 // Internal function, used to calculate length of 0-padding for byte slices in Nix protocol.
 // n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
-// FIXME(akavel): should below fn take u64 instead?
-const fn pad(n: usize) -> usize {
-    (8 - n % 8) % 8
+const fn pad(n: u64) -> usize {
+    ((8 - n % 8) % 8) as usize
 }
 
-struct BlobRead<'a, R: io::Read> {
+pub struct BlobRead<'a, R: io::Read> {
     reader: &'a mut R,
     remaining: u64,
-    padding: usize,
+    parent_skip: &'a mut u64,
 }
 
 impl<'a, R> io::Read for BlobRead<'a, R>
@@ -171,22 +191,8 @@ where
         };
         let n = self.reader.read(&mut buf[..max])?;
         self.remaining -= n as u64;
+        *self.parent_skip -= n as u64;
         return Ok(n);
-    }
-}
-
-impl<'a, R> Drop for BlobRead<'a, R>
-where
-    R: io::Read,
-{
-    fn drop(&mut self) {
-        let mut buf = [0; 256];
-        while self.remaining > 256 {
-            self.reader.read_exact(&mut buf);
-            self.remaining -= 256;
-        }
-        self.reader.read_exact(&mut buf[..self.remaining as usize]);
-        self.reader.read_exact(&mut buf[..self.padding]);
     }
 }
 
@@ -203,7 +209,7 @@ mod tests {
             #[test]
             fn $testname() {
                 let mut buf = std::vec::Vec::new();
-                Stream { stream: &mut buf }.$method($input).unwrap();
+                Stream::new(&mut buf).$method($input).unwrap();
                 assert_eq!(buf, $expect);
             }
         };
@@ -237,9 +243,9 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn test_read_bool() {
-        assert_eq!(false, Stream { stream: &mut &hex!("00 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
-        assert_eq!(true,  Stream { stream: &mut &hex!("01 00 00 00  00 00 00 00")[..] }.read_bool().unwrap());
-        assert_eq!(true,  Stream { stream: &mut &hex!("ff ff ff ff  ff ff ff ff")[..] }.read_bool().unwrap());
+        assert_eq!(false, Stream::new(&mut &hex!("00 00 00 00  00 00 00 00")[..]).read_bool().unwrap());
+        assert_eq!(true,  Stream::new(&mut &hex!("01 00 00 00  00 00 00 00")[..]).read_bool().unwrap());
+        assert_eq!(true,  Stream::new(&mut &hex!("ff ff ff ff  ff ff ff ff")[..]).read_bool().unwrap());
     }
 
     #[test]
@@ -252,9 +258,8 @@ mod tests {
             hex!("33 31 00 00 00 00 00 00  38 00 00 00 00 00 00 00"), // 31......8....... |
         ]
         .concat();
-        let mut deserializer = Stream {
-            stream: &mut &buf[..],
-        };
+        let mut r = &buf[..];
+        let mut deserializer = Stream::new(&mut r);
         assert_eq!(
             deserializer.read_str_ascii(100).unwrap(),
             "/nix/store/2kcrj1ksd2a14bm5sky182fv2xwfhfap-glibc-2.26-131"
@@ -264,9 +269,8 @@ mod tests {
     #[test]
     fn test_read_str_ascii_rejects_00() {
         let buf = hex!("01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00");
-        let mut deserializer = Stream {
-            stream: &mut &buf[..],
-        };
+        let mut r = &buf[..];
+        let mut deserializer = Stream::new(&mut r);
         assert_eq!(
             deserializer.read_str_ascii(100).unwrap_err().to_string(),
             "unexpected byte '\\u{0}' (hex 00) parsing bytes as string: [00]"
@@ -276,9 +280,8 @@ mod tests {
     #[test]
     fn test_read_str_ascii_rejects_ff() {
         let buf = hex!("01 00 00 00 00 00 00 00  ff 00 00 00 00 00 00 00");
-        let mut deserializer = Stream {
-            stream: &mut &buf[..],
-        };
+        let mut r = &buf[..];
+        let mut deserializer = Stream::new(&mut r);
         assert_eq!(
             deserializer.read_str_ascii(100).unwrap_err().to_string(),
             "unexpected byte '\\u{ff}' (hex ff) parsing bytes as string: [ff]"
