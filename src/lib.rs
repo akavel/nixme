@@ -4,8 +4,8 @@ use num_traits::FromPrimitive;
 use std::io::{ErrorKind, Read, Write};
 
 use crate::stream::Stream;
-pub mod stream;
 pub mod nar;
+pub mod stream;
 
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
@@ -73,4 +73,3 @@ enum Command {
 //     let _paths = stream.read_strings(100, 300)?;
 //     // TODO: reply stuff
 // }
-

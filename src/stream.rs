@@ -90,7 +90,7 @@ where
             remaining: n,
             parent_skip: &mut self.to_skip,
         };
-        return Ok((n, r));
+        Ok((n, r))
     }
     // fn read_bytes(&mut self) -> Result<&[u8]> {
     //     let n = self.read_u64()?;
@@ -192,7 +192,7 @@ where
         let n = self.reader.read(&mut buf[..max])?;
         self.remaining -= n as u64;
         *self.parent_skip -= n as u64;
-        return Ok(n);
+        Ok(n)
     }
 }
 
