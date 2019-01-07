@@ -7,6 +7,9 @@ use crate::stream::Stream;
 pub mod nar;
 pub mod stream;
 
+// TODO: test 'serve()' for simplified scenario with just cmd 1, with 1 missing pkg, with testing store
+// TODO: test 'serve()' for simplified scenario with just cmd 2
+
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc
@@ -72,4 +75,8 @@ enum Command {
 //     let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
 //     let _paths = stream.read_strings(100, 300)?;
 //     // TODO: reply stuff
+// }
+
+// pub trait Store {
+//     fn query_valid_paths(&mut self, paths: &IntoIterator<Item=&str>) -> impl Iterator<String>;
 // }

@@ -128,6 +128,7 @@ where
     // maximum length as specified. If longer string was found, or non-fitting bytes, return
     // error.
     pub fn read_str_ascii(&mut self, max: u64) -> Result<String> {
+        // TODO(akavel): rewrite read_str_ascii using read_blob
         let n = self.read_u64()?;
         if n > max {
             // FIXME(akavel): add offset info in the error
