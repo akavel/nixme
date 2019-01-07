@@ -166,6 +166,20 @@ where
         }
         Ok(())
     }
+
+    // TODO(akavel): improve this to return Iterator<Item=Result<String>>, and remove maxn
+    pub fn read_strings_ascii(&mut self, maxn: u64, maxlen: u64) -> Result<Vec<String>> {
+        let n = self.read_u64()?;
+        if n > maxn {
+            return protocol_error!("too many strings, expected max {}, got {}", maxn, n);
+        }
+        let mut result = vec![String::new(); n as usize];
+        for path in &mut result {
+            // for mut path in &mut result {
+            *path = self.read_str_ascii(maxlen)?;
+        }
+        Ok(result)
+    }
 }
 
 // Internal function, used to calculate length of 0-padding for byte slices in Nix protocol.
