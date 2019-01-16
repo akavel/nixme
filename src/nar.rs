@@ -85,8 +85,8 @@ where
         }
         stream.expect_str("(")?;
         stream.expect_str("name")?;
-        let name = stream.read_str_ascii(max_name)?;
-        if name == "" || name == "." || name == ".." || name.contains("/") || name.contains("\0") {
+        let name = stream.read_str_ascii(MAX_NAME)?;
+        if name == "" || name == "." || name == ".." || name.contains('/') || name.contains('\0') {
             return protocol_error!("node name contains invalid characters: '{}'", name);
         }
         if name <= prev_name {
@@ -104,11 +104,11 @@ where
     R: Read,
     H: Handler,
 {
-    handler.create_symlink(path, &stream.read_str_ascii(max_target)?);
+    handler.create_symlink(path, &stream.read_str_ascii(MAX_TARGET)?);
     stream.expect_str(")")
 }
 
-const max_name: u64 = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
-const max_target: u64 = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
+const MAX_NAME: u64 = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
+const MAX_TARGET: u64 = 255; // FIXME(akavel): use some correct value here; MAX_PATH?
 
 const NAR_VERSION_MAGIC_1: &str = "nix-archive-1";

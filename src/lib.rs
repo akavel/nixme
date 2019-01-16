@@ -4,13 +4,16 @@ use num_traits::FromPrimitive;
 use std::io::{ErrorKind, Read, Write};
 
 use crate::stream::Stream;
-pub mod stream;
 pub mod nar;
+pub mod stream;
+
+// TODO: test 'serve()' for simplified scenario with just cmd 1, with 1 missing pkg, with testing store
+// TODO: test 'serve()' for simplified scenario with just cmd 2
 
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc
-pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
+pub fn serve(store: &mut Store, stream: &mut (impl Read + Write)) -> Result<(), Error> {
     let mut stream = Stream::new(stream);
     // Exchange initial greeting.
     let magic = stream
@@ -40,6 +43,9 @@ pub fn serve(stream: &mut (impl Read + Write)) -> Result<(), Error> {
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
                 println!("query v.p.!");
+                let paths = stream.read_strings(100, 300)?;
+                let response = store.query_valid_paths(paths);
+                stream.write_strings(response);
             }
             _ => {
                 panic!("unknown cmd {}", cmd);
@@ -74,3 +80,7 @@ enum Command {
 //     // TODO: reply stuff
 // }
 
+pub trait Store {
+    // TODO: fn query_valid_paths(&mut self, paths: &IntoIterator<Item=&str>) -> impl Iterator<String>;
+    fn query_valid_paths(&mut self, paths: &IntoIterator<Item=&str>) -> Vec<String>;
+}
