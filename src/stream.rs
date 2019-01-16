@@ -67,6 +67,17 @@ where
     pub fn write_bool(&mut self, v: bool) -> Result<()> {
         self.write_u64(if v { 1 } else { 0 })
     }
+    pub fn write_str(&mut self, v: &str) -> Result<()> {
+        // FIXME(akavel): SUPER IMPORTANT: what encoding is used by Nix for strings in the protocol?
+        self.write_bytes(v.as_bytes())
+    }
+    pub fn write_strings(&mut self, v: [&str]) -> Result<()> {
+        self.write_u64(v.len())?;
+        for s in v {
+            self.write_str(s)?;
+        }
+        Ok(())
+    }
     // fn serialize_str(self, v: &str) -> Result<()> {
     //     // FIXME(akavel): super important: what encoding is used by Nix for strings in the protocol?
     //     self.serialize_bytes(
