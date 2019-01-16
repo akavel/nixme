@@ -71,10 +71,12 @@ where
         // FIXME(akavel): SUPER IMPORTANT: what encoding is used by Nix for strings in the protocol?
         self.write_bytes(v.as_bytes())
     }
-    pub fn write_strings(&mut self, v: [&str]) -> Result<()> {
-        self.write_u64(v.len())?;
+    // TODO(akavel): use ExactSizeIterator<&str> for 'v' param
+    // (currently using AsRef, per https://stackoverflow.com/a/41180422/98528)
+    pub fn write_strings<T: AsRef<str>>(&mut self, v: &[T]) -> Result<()> {
+        self.write_u64(v.len() as u64)?;
         for s in v {
-            self.write_str(s)?;
+            self.write_str(s.as_ref())?;
         }
         Ok(())
     }

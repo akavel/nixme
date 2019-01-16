@@ -43,9 +43,9 @@ pub fn serve(store: &mut Store, stream: &mut (impl Read + Write)) -> Result<(), 
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
                 println!("query v.p.!");
-                let paths = stream.read_strings(100, 300)?;
-                let response = store.query_valid_paths(paths);
-                stream.write_strings(response);
+                let paths = stream.read_strings_ascii(100, 300)?;
+                let response = store.query_valid_paths(&mut paths.iter().map(|s|&**s));
+                stream.write_strings(&response);
             }
             _ => {
                 panic!("unknown cmd {}", cmd);
@@ -82,5 +82,6 @@ enum Command {
 
 pub trait Store {
     // TODO: fn query_valid_paths(&mut self, paths: &IntoIterator<Item=&str>) -> impl Iterator<String>;
-    fn query_valid_paths(&mut self, paths: &IntoIterator<Item=&str>) -> Vec<String>;
+    // fn query_valid_paths(&mut self, paths: impl IntoIterator<Item=AsRef<str>>) -> Vec<String>;
+    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item=&str>) -> Vec<String>;
 }
