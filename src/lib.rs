@@ -7,7 +7,6 @@ use crate::stream::Stream;
 pub mod nar;
 pub mod stream;
 
-// TODO: test 'serve()' for simplified scenario with just cmd 1, with 1 missing pkg, with testing store
 // TODO: test 'serve()' for simplified scenario with just cmd 2
 
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
@@ -47,6 +46,11 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                 let paths = stream.read_strings_ascii(100, 300)?;
                 let response = store.query_valid_paths(&mut paths.iter().map(|s| &**s));
                 stream.write_strings(&response)?;
+            }
+            Some(Command::QueryPathInfos) => {
+                let _paths = stream.read_strings_ascii(100, 300)?;
+                // TODO(akavel): do we need to implement this, or is it ok to just fake it?
+                stream.write_u64(0)?;
             }
             _ => {
                 panic!("unknown cmd {}", cmd);
