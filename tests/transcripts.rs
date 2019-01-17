@@ -1,9 +1,12 @@
-use nixme;
 extern crate mock_io;
 use io_dump::Packets;
 use mock_io::Builder;
+use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
+
+use nixme;
+use nixme::Store;
 
 #[test]
 fn handshake_then_eof() {
@@ -15,7 +18,8 @@ eb 9d 0c 39 00 00 00 00 04 02 00 00 00 00 00 00   ...9............ |
 cb ee 52 54 00 00 00 00 04 02 00 00 00 00 00 00   ..RT............ |
 "#;
     let mut mock = Builder::from_packets(Packets::new(&transcript[..])).build();
-    nixme::serve(&mut mock).unwrap();
+    let mut store = TestStore::new();
+    nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
     let mut buf = [0; 16];
@@ -60,7 +64,13 @@ cb ee 52 54 00 00 00 00 04 02 00 00 00 00 00 00   ..RT............ |
 63 2d 32 2e 32 37 00 00                           c-2.27..         |
 "#;
     let mut mock = Builder::from_packets(Packets::new(&transcript[..])).build();
-    nixme::serve(&mut mock).unwrap();
+    let mut store = TestStore {
+        has_paths: ["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect(),
+    };
+    nixme::serve(&mut store, &mut mock).unwrap();
 }
 
 #[test]
@@ -68,7 +78,8 @@ fn existing_pkg_iodump() {
     let mut mock = Builder::open("tests/transcripts/a01-existing-pkg.iodump")
         .unwrap()
         .build();
-    nixme::serve(&mut mock).unwrap();
+    let mut store = TestStore::new();
+    nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
     let mut buf = [0; 16];
@@ -85,7 +96,8 @@ fn failed_pkg_receive_iodump() {
     let mut mock = Builder::open("tests/transcripts/b01-failed-import.iodump")
         .unwrap()
         .build();
-    nixme::serve(&mut mock).unwrap();
+    let mut store = TestStore::new();
+    nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
     let mut buf = [0; 16];
@@ -95,4 +107,29 @@ fn failed_pkg_receive_iodump() {
         "iodump not yet exhausted for reading"
     );
     assert!(mock.write(b"X").is_err()); // TODO(akavel): something better should be used here
+}
+
+struct TestStore {
+    has_paths: HashSet<String>,
+}
+
+impl TestStore {
+    fn new() -> Self {
+        TestStore {
+            has_paths: HashSet::new(),
+        }
+    }
+}
+
+impl Store for TestStore {
+    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String> {
+        let mut result = Vec::new();
+        for p in paths {
+            println!("{:#?}", &p);
+            if self.has_paths.contains(p) {
+                result.push(p.to_string());
+            }
+        }
+        result
+    }
 }

@@ -13,7 +13,7 @@ pub mod stream;
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc
-pub fn serve(store: &'static mut Store, stream: &mut (impl Read + Write)) -> Result<(), Error> {
+pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<(), Error> {
     let mut stream = Stream::new(stream);
     // Exchange initial greeting.
     let magic = stream
@@ -43,8 +43,12 @@ pub fn serve(store: &'static mut Store, stream: &mut (impl Read + Write)) -> Res
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
                 // println!("query v.p.!");
+                let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
+                let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
                 let paths = stream.read_strings_ascii(100, 300)?;
-                let response = store.query_valid_paths(&mut paths.iter().map(|s|&**s));
+                println!("paths: {:#?}", &paths);
+                let response = store.query_valid_paths(&mut paths.iter().map(|s| &**s));
+                println!("{:#?}", &response);
                 // let response = store.query_valid_paths(&paths);
                 stream.write_strings(&response)?;
             }
@@ -88,5 +92,6 @@ pub trait Store {
     // - https://github.com/rust-lang/rust/issues/22031
     // - https://stackoverflow.com/a/41180422
     // - https://stackoverflow.com/q/48734211
-    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item=&str>) -> Vec<String>;
+    // TODO(akavel): return an Iterator<String>
+    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String>;
 }
