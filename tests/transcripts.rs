@@ -18,7 +18,7 @@ eb 9d 0c 39 00 00 00 00 04 02 00 00 00 00 00 00   ...9............ |
 cb ee 52 54 00 00 00 00 04 02 00 00 00 00 00 00   ..RT............ |
 "#;
     let mut mock = Builder::from_packets(Packets::new(&transcript[..])).build();
-    let mut store = TestStore::new();
+    let mut store = TestStore::new(&[]);
     nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
@@ -64,12 +64,7 @@ cb ee 52 54 00 00 00 00 04 02 00 00 00 00 00 00   ..RT............ |
 63 2d 32 2e 32 37 00 00                           c-2.27..         |
 "#;
     let mut mock = Builder::from_packets(Packets::new(&transcript[..])).build();
-    let mut store = TestStore {
-        has_paths: ["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]
-            .iter()
-            .map(|x| x.to_string())
-            .collect(),
-    };
+    let mut store = TestStore::new(&["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]);
     nixme::serve(&mut store, &mut mock).unwrap();
 }
 
@@ -78,7 +73,11 @@ fn existing_pkg_iodump() {
     let mut mock = Builder::open("tests/transcripts/a01-existing-pkg.iodump")
         .unwrap()
         .build();
-    let mut store = TestStore::new();
+    let mut store = TestStore::new(&[
+        "/nix/store/2kcrj1ksd2a14bm5sky182fv2xwfhfap-glibc-2.26-131",
+        "/nix/store/aakgkcvw6j54zg38zrn1w00sgxx0zj8b-xz-5.2.3-bin",
+        "/nix/store/chf54cl12ifswf6swh7kxpif477drihi-xz-5.2.3",
+    ]);
     nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
@@ -96,7 +95,7 @@ fn failed_pkg_receive_iodump() {
     let mut mock = Builder::open("tests/transcripts/b01-failed-import.iodump")
         .unwrap()
         .build();
-    let mut store = TestStore::new();
+    let mut store = TestStore::new(&[]);
     nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
@@ -114,9 +113,9 @@ struct TestStore {
 }
 
 impl TestStore {
-    fn new() -> Self {
+    fn new(has_paths: &[&str]) -> Self {
         TestStore {
-            has_paths: HashSet::new(),
+            has_paths: has_paths.iter().map(|x| x.to_string()).collect(),
         }
     }
 }
@@ -125,7 +124,7 @@ impl Store for TestStore {
     fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String> {
         let mut result = Vec::new();
         for p in paths {
-            println!("{:#?}", &p);
+            // println!("{:#?}", &p);
             if self.has_paths.contains(p) {
                 result.push(p.to_string());
             }

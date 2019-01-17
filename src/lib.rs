@@ -42,14 +42,10 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
         };
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
-                // println!("query v.p.!");
                 let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
                 let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
                 let paths = stream.read_strings_ascii(100, 300)?;
-                println!("paths: {:#?}", &paths);
                 let response = store.query_valid_paths(&mut paths.iter().map(|s| &**s));
-                println!("{:#?}", &response);
-                // let response = store.query_valid_paths(&paths);
                 stream.write_strings(&response)?;
             }
             _ => {
