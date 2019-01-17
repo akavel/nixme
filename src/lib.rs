@@ -42,11 +42,11 @@ pub fn serve(store: &'static mut Store, stream: &mut (impl Read + Write)) -> Res
         };
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
-                println!("query v.p.!");
+                // println!("query v.p.!");
                 let paths = stream.read_strings_ascii(100, 300)?;
-                // let response = store.query_valid_paths(&mut paths.iter().map(|s|&**s));
-                let response = store.query_valid_paths(&paths);
-                stream.write_strings(&response);
+                let response = store.query_valid_paths(&mut paths.iter().map(|s|&**s));
+                // let response = store.query_valid_paths(&paths);
+                stream.write_strings(&response)?;
             }
             _ => {
                 panic!("unknown cmd {}", cmd);
@@ -82,48 +82,11 @@ enum Command {
 // }
 
 pub trait Store {
-    // TODO: try to make it accept both &["foo"] and vec![String::from("foo")]. See however:
+    // TODO(akavel): try to make it accept both &["foo"] and vec![String::from("foo")]. See however:
     // - https://stackoverflow.com/q/54225766
     // and optionally:
     // - https://github.com/rust-lang/rust/issues/22031
     // - https://stackoverflow.com/a/41180422
     // - https://stackoverflow.com/q/48734211
-    // fn query_valid_paths(&mut self, paths: impl IntoIterator<Item=AsRef<str>>) -> Vec<String>;
-    fn query_valid_paths_inner(&mut self, paths: &mut dyn Iterator<Item=&str>) -> Vec<String>;
-    // fn query_valid_paths<'a>(&mut self, paths: impl IntoIterator<Item = &'a str>) -> Vec<String>
-    // where Self: Sized {
-    //     let mut it = paths.into_iter();
-    //     self.query_valid_paths_inner(&mut it)
-    // }
-}
-
-// fn _ensure_trait_objectable(_: &dyn Store) { }
-
-impl dyn Store {
-    pub fn query_valid_paths<'a, S, I>(&'a mut self, paths: I) -> Vec<String>
-    where
-        I: IntoIterator<Item = &'a S>,
-        S: AsRef<str> + 'a,
-    {
-        let mut it = paths.into_iter().map(|x| x.as_ref());
-        self.query_valid_paths_inner(&mut it)
-    }
-    // pub fn query_valid_paths(&mut self, paths: impl IntoIterator<Item = impl AsRef<str>>) -> Vec<String> {
-    // pub fn query_valid_paths<S>(&mut self, paths: impl IntoIterator<Item = S>) -> Vec<String> 
-    // where S: AsRef<str> {
-    //     let mut iter = paths.into_iter();
-    //     // self.query_valid_paths_inner(&mut iter.map(|s|s.as_ref()))
-    //     self.query_valid_paths_inner(&mut iter.map(AsRef::as_ref))
-    //     // self.query_valid_paths_inner(iter.map(AsRef::as_ref))
-    // }
-}
-
-// fn _test_qvp(s: &'static mut dyn Store) {
-fn _test_qvp(s: impl Store) {
-    let a = vec![String::from("foo")];
-    let b = &["foo"];
-    // s.query_valid_paths(&a);
-    // s.query_valid_paths(b);
-    s.query_valid_paths_inner(a.into_iter());
-    s.query_valid_paths_inner(b.into_iter());
+    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item=&str>) -> Vec<String>;
 }
