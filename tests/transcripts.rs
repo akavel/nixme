@@ -95,7 +95,7 @@ fn failed_pkg_receive_iodump() {
     let mut mock = Builder::open("tests/transcripts/b01-failed-import.iodump")
         .unwrap()
         .build();
-    let mut store = TestStore::new(&[]);
+    let mut store = TestStore::new(&["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]);
     nixme::serve(&mut store, &mut mock).unwrap();
 
     // Mock is empty.
