@@ -37,24 +37,22 @@ struct Database {
     conn: sql::Connection,
 }
 
+macro_rules! maybe {
+    ($value:expr; if $condition:expr) => {
+        if $condition {
+            Some($value)
+        } else {
+            None
+        }
+    };
+}
+
 impl Database {
     fn update_path_info(&mut self, info: &store::ValidPathInfo) -> Result<()> {
-        let nar_size = if info.nar_size > 0 {
-            Some(info.nar_size as i64)
-        } else {
-            None
-        };
-        let ultimate = if info.ultimate { Some(1) } else { None };
-        let sigs = if !info.sigs.is_empty() {
-            Some(join(&info.sigs, " "))
-        } else {
-            None
-        };
-        let ca = if !info.ca.is_empty() {
-            Some(&info.ca)
-        } else {
-            None
-        };
+        let nar_size = maybe!(info.nar_size as i64; if info.nar_size > 0);
+        let ultimate = maybe!(1; if info.ultimate);
+        let sigs = maybe!(join(&info.sigs, " "); if !info.sigs.is_empty());
+        let ca = maybe!(&info.ca; if !info.ca.is_empty());
         let mut stmt = self.conn.prepare_cached("update ValidPaths set narSize = ?, hash = ?, ultimate = ?, sigs = ?, ca = ? where path = ?;")?;
         stmt.execute(&[
             &nar_size as &ToSql,
