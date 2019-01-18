@@ -1,5 +1,6 @@
 use failure::Error;
 use std::collections::HashSet;
+use std::env;
 use std::io;
 
 use nixme;
@@ -11,7 +12,9 @@ fn main() -> std::result::Result<(), Error> {
         read: &mut stdin.lock(),
         write: &mut stdout.lock(),
     };
-    let mut store = LocalStore::new();
+    let mut store = LocalStore {
+        paths: env::args().collect(),
+    };
     nixme::serve(&mut store, &mut stdio)
 }
 
