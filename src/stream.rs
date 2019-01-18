@@ -137,6 +137,22 @@ where
     // Helper functions, converting the basic protocol atoms into other types
     //
 
+    pub fn expect_u64(&mut self, v: u64) -> Result<()> {
+        let r = self
+            .read_u64()
+            .context(format!("expected {} (hex {:02x?}", v, v))?;
+        if r != v {
+            return protocol_error!(
+                "expected {} (hex {:02x?}), got {} (hex {:02x?})",
+                v,
+                v,
+                r,
+                r
+            );
+        }
+        Ok(())
+    }
+
     pub fn read_bool(&mut self) -> Result<bool> {
         // TODO(akavel): or should it be ... == 1 ?
         Ok(self.read_u64()? != 0)

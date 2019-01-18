@@ -16,13 +16,7 @@ pub mod stream;
 pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<(), Error> {
     let mut stream = Stream::new(stream);
     // Exchange initial greeting.
-    let magic = stream
-        .read_u64()
-        .context("cannot read 'hello' magic number")?;
-    if magic != SERVE_MAGIC_1 {
-        debug!("no SERVE_MAGIC_1");
-        bail!("protocol mismatch");
-    }
+    stream.expect_u64(SERVE_MAGIC_1)?;
     debug!("got SERVE_MAGIC_1");
     stream.write_u64(SERVE_MAGIC_2)?;
     stream.write_u64(SERVE_PROTOCOL_VERSION)?;
@@ -59,6 +53,7 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
             }
             Some(Command::QueryPathInfos) => {
                 debug!("cmd 2");
+                // FIXME(akavel): use some correct max length here
                 let _paths = stream.read_strings_ascii(100, 300)?;
                 // TODO(akavel): do we need to implement this, or is it ok to just fake it?
                 stream.write_u64(0)?;
@@ -76,7 +71,19 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                     }
                     let mut handler = NopHandler {};
                     nar::parse(&mut stream, &mut handler)?;
+                    stream.expect_u64(EXPORT_MAGIC)?;
+                    // FIXME(akavel): use some correct max length here
+                    const MAX_PATH: u64 = 255;
+                    let _path = stream.read_str_ascii(MAX_PATH)?;
+                    let _references = stream.read_strings_ascii(100, MAX_PATH)?;
+                    let _deriver = stream.read_str_ascii(MAX_PATH)?;
+                    // Ignore optional legacy signature.
+                    if stream.read_u64()? == 1 {
+                        let _ = stream.read_str_ascii(MAX_PATH)?;
+                    }
                 }
+                stream.write_u64(1)?; // indicate success
+                stream.flush()?;
             }
             _ => {
                 panic!("unknown cmd {}", cmd);
@@ -89,6 +96,7 @@ const SERVE_MAGIC_1: u64 = 0x390c_9deb;
 const SERVE_MAGIC_2: u64 = 0x5452_eecb;
 // TODO(akavel): use protocol version 0x205
 const SERVE_PROTOCOL_VERSION: u64 = 0x204;
+const EXPORT_MAGIC: u64 = 0x4558_494e;
 
 #[derive(FromPrimitive)]
 enum Command {
