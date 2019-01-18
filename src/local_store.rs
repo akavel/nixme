@@ -48,6 +48,14 @@ macro_rules! maybe {
 }
 
 impl Database {
+    fn open() -> Result<Self> {
+        let db = Database {
+            conn: sql::Connection::open_in_memory()?,
+        };
+        db.conn.execute_batch(include_str!("local_store.sql"))?;
+        Ok(db)
+    }
+
     fn update_path_info(&mut self, info: &store::ValidPathInfo) -> Result<()> {
         let nar_size = maybe!(info.nar_size as i64; if info.nar_size > 0);
         let ultimate = maybe!(1; if info.ultimate);
