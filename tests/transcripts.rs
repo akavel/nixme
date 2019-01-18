@@ -91,8 +91,8 @@ fn existing_pkg_iodump() {
 }
 
 #[test]
-fn failed_pkg_receive_iodump() {
-    let mut mock = Builder::open("tests/transcripts/b01-failed-import.iodump")
+fn pkg_import_iodump() {
+    let mut mock = Builder::open("tests/transcripts/c00-import.iodump")
         .unwrap()
         .build();
     let mut store = TestStore::new(&["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]);
