@@ -48,6 +48,11 @@ impl<'a, W> Stream<'a, W>
 where
     W: io::Write,
 {
+    pub fn flush(&mut self) -> Result<()> {
+        self.stream.flush()?;
+        Ok(())
+    }
+
     // The basic building blocks of the protocol: functions serializing the types: u64 and [u8].
     pub fn write_u64(&mut self, v: u64) -> Result<()> {
         self.stream.write_u64::<LE>(v)?; // TODO(akavel): do I need a .map_err(Error) here maybe?

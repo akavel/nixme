@@ -1,5 +1,5 @@
 use failure::{bail, Error, ResultExt};
-use log::debug;
+use log::{debug, error};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::io::{ErrorKind, Read, Write};
@@ -26,14 +26,17 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
     debug!("got SERVE_MAGIC_1");
     stream.write_u64(SERVE_MAGIC_2)?;
     stream.write_u64(SERVE_PROTOCOL_VERSION)?;
+    stream.flush()?;
     debug!("wrote SERVE_MAGIC_2");
     let _client_version = stream.read_u64().context("cannot read client version")?;
+    debug!("read client_version");
 
     // Handle commands.
     loop {
         let cmd = match stream.read_u64() {
             Ok(x) => x,
             Err(e) => {
+                debug!("failed to red cmd");
                 // TODO(akavel): put below block in helper func, then call it from guard expression
                 if let Some(ref cause) = e.downcast_ref::<std::io::Error>() {
                     if cause.kind() == ErrorKind::UnexpectedEof {
@@ -43,6 +46,7 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                 return Err(e);
             }
         };
+        debug!("read cmd: {}", cmd);
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
                 debug!("cmd 1");
@@ -51,12 +55,14 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                 let paths = stream.read_strings_ascii(100, 300)?;
                 let response = store.query_valid_paths(&mut paths.iter().map(|s| &**s));
                 stream.write_strings(&response)?;
+                stream.flush()?;
             }
             Some(Command::QueryPathInfos) => {
                 debug!("cmd 2");
                 let _paths = stream.read_strings_ascii(100, 300)?;
                 // TODO(akavel): do we need to implement this, or is it ok to just fake it?
                 stream.write_u64(0)?;
+                stream.flush()?;
             }
             Some(Command::ImportPaths) => {
                 debug!("cmd 4");
@@ -65,6 +71,7 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                     if next == 0 {
                         break;
                     } else if next != 1 {
+                        error!("cmd 4: got next={}", next);
                         bail!("input doesn't look like something created by 'nix-store --export'");
                     }
                     let mut handler = NopHandler {};
