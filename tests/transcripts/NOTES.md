@@ -22,5 +22,5 @@ appropriate.
 
         Environment:
 
-            $ nix build dumper.nix && ./result 2022                     # will start SSH server
+            $ nix build -f dumper.nix && ./result 2022                     # will start SSH server
             $ sudo `which socat` tcp-listen:22,fork tcp:localhost:2022  # will redirect port 22 to 2022

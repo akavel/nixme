@@ -1,4 +1,5 @@
 use failure::{bail, Error, ResultExt};
+use log::debug;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::io::{ErrorKind, Read, Write};
@@ -19,10 +20,13 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
         .read_u64()
         .context("cannot read 'hello' magic number")?;
     if magic != SERVE_MAGIC_1 {
+        debug!("no SERVE_MAGIC_1");
         bail!("protocol mismatch");
     }
+    debug!("got SERVE_MAGIC_1");
     stream.write_u64(SERVE_MAGIC_2)?;
     stream.write_u64(SERVE_PROTOCOL_VERSION)?;
+    debug!("wrote SERVE_MAGIC_2");
     let _client_version = stream.read_u64().context("cannot read client version")?;
 
     // Handle commands.
@@ -41,6 +45,7 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
         };
         match FromPrimitive::from_u64(cmd) {
             Some(Command::QueryValidPaths) => {
+                debug!("cmd 1");
                 let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
                 let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
                 let paths = stream.read_strings_ascii(100, 300)?;
@@ -48,20 +53,24 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                 stream.write_strings(&response)?;
             }
             Some(Command::QueryPathInfos) => {
+                debug!("cmd 2");
                 let _paths = stream.read_strings_ascii(100, 300)?;
                 // TODO(akavel): do we need to implement this, or is it ok to just fake it?
                 stream.write_u64(0)?;
             }
-            Some(Command::ImportPaths) => loop {
-                let next = stream.read_u64()?;
-                if next == 0 {
-                    break;
-                } else if next != 1 {
-                    bail!("input doesn't look like something created by 'nix-store --export'");
+            Some(Command::ImportPaths) => {
+                debug!("cmd 4");
+                loop {
+                    let next = stream.read_u64()?;
+                    if next == 0 {
+                        break;
+                    } else if next != 1 {
+                        bail!("input doesn't look like something created by 'nix-store --export'");
+                    }
+                    let mut handler = NopHandler {};
+                    nar::parse(&mut stream, &mut handler)?;
                 }
-                let mut handler = NopHandler {};
-                nar::parse(&mut stream, &mut handler)?;
-            },
+            }
             _ => {
                 panic!("unknown cmd {}", cmd);
             }

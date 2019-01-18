@@ -1,11 +1,21 @@
+use dirs;
 use failure::Error;
+use log;
+use simplelog;
 use std::collections::HashSet;
-use std::env;
-use std::io;
+use std::{env, fs, io};
 
 use nixme;
 
 fn main() -> std::result::Result<(), Error> {
+    let mut log_file = dirs::data_local_dir().unwrap();
+    log_file.push("nixme.log");
+    simplelog::WriteLogger::init(
+        simplelog::LevelFilter::Debug,
+        simplelog::Config::default(),
+        fs::File::create(log_file)?,
+    )?;
+
     // println!("Hello, world!");
     let (stdin, stdout) = (io::stdin(), io::stdout());
     let mut stdio = ReadWrite {
@@ -13,7 +23,11 @@ fn main() -> std::result::Result<(), Error> {
         write: &mut stdout.lock(),
     };
     let mut store = LocalStore {
-        paths: env::args().collect(),
+        // paths: env::args().collect(),
+        paths: ["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect(),
     };
     nixme::serve(&mut store, &mut stdio)
 }

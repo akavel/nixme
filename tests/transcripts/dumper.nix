@@ -1,4 +1,7 @@
-{ pkgs ? (import <nixpkgs> {})
+{ nix_store_cmd ? "${home}/.nix-profile/bin/nix-store"
+, home ? builtins.getEnv "HOME"
+## plumbing parameters
+, pkgs ? (import <nixpkgs> {})
 , stdenv ? pkgs.stdenv
 , bash ? pkgs.bash
 , qemu_kvm ? pkgs.qemu_kvm
@@ -37,10 +40,8 @@ let
   interceptor = writeScript "interceptor" ''
     #!${bash}/bin/bash
     mkdir -p ${home}/var/log
-    strace -f -o "${home}/var/log/interceptor.log" -e read,write -e read=0,1,2 -e write=0,1,2 "${home}/.nix-profile/bin/nix-store" --serve
+    strace -f -o "${home}/var/log/interceptor.log" -e read,write -e read=0,1,2 -e write=0,1,2 "${nix_store_cmd}" --serve
   '';
-
-  home = builtins.getEnv "HOME";
 
 in result
 
