@@ -52,6 +52,18 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                 // TODO(akavel): do we need to implement this, or is it ok to just fake it?
                 stream.write_u64(0)?;
             }
+            Some(Command::ImportPaths) => {
+                loop {
+                    let next = stream.read_u64()?;
+                    if next == 0 {
+                        break;
+                    } else if next != 1 {
+                        bail!("input doesn't look like something created by 'nix-store --export'");
+                    }
+                    let mut handler = NopHandler{};
+                    nar::parse(&mut stream, &mut handler)?;
+                }
+            }
             _ => {
                 panic!("unknown cmd {}", cmd);
             }
@@ -69,21 +81,13 @@ enum Command {
     QueryValidPaths = 1,
     QueryPathInfos = 2,
     // cmdDumpStorePath = 3,
-    // cmdImportPaths = 4,
+    ImportPaths = 4,
     // cmdExportPaths = 5,
     // cmdBuildPaths = 6,
     // cmdQueryClosure = 7,
     // cmdBuildDerivation = 8,
     // cmdAddToStoreNar = 9,
 }
-
-// fn handleQueryValidPaths(&mut stream: Stream) -> Result<(), Error> {
-//     // TODO: read stuff
-//     let _lock = stream.read_bool()?; // TODO[LATER]: implement `lock` handling
-//     let _substitute = stream.read_bool()?; // TODO[LATER]: implement `substitute` handling
-//     let _paths = stream.read_strings(100, 300)?;
-//     // TODO: reply stuff
-// }
 
 pub trait Store {
     // TODO(akavel): try to make it accept both &["foo"] and vec![String::from("foo")]. See however:
@@ -94,4 +98,12 @@ pub trait Store {
     // - https://stackoverflow.com/q/48734211
     // TODO(akavel): return an Iterator<String>
     fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String>;
+}
+
+struct NopHandler { }
+
+impl nar::Handler for NopHandler {
+    fn create_directory(&mut self, _path: &str) {}
+    fn create_file(&mut self, _path: &str, _executable: bool, _size: u64, _contents: &mut impl Read) {}
+    fn create_symlink(&mut self, _path: &str, _target: &str) {}
 }
