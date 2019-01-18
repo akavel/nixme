@@ -5,8 +5,7 @@ use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
 
-use nixme;
-use nixme::Store;
+use nixme::{self, store::Store};
 
 #[test]
 fn handshake_then_eof() {

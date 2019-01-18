@@ -2,10 +2,10 @@ use dirs;
 use failure::Error;
 use log;
 use simplelog;
-use std::collections::HashSet;
-use std::{env, fs, io};
+use std::{fs, io};
 
-use nixme;
+use nixme::{self, local_store::LocalStore};
+// use nixme;
 
 fn main() -> std::result::Result<(), Error> {
     let mut log_file = dirs::data_local_dir().unwrap();
@@ -61,30 +61,5 @@ where
     }
     fn flush(&mut self) -> std::result::Result<(), io::Error> {
         self.write.flush()
-    }
-}
-
-struct LocalStore {
-    paths: HashSet<String>,
-}
-
-impl LocalStore {
-    fn new() -> Self {
-        LocalStore {
-            paths: HashSet::new(),
-        }
-    }
-}
-
-impl nixme::Store for LocalStore {
-    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String> {
-        let mut result = Vec::new();
-        for p in paths {
-            // println!("{:#?}", &p);
-            if self.paths.contains(p) {
-                result.push(p.to_string());
-            }
-        }
-        result
     }
 }

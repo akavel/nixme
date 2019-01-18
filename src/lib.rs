@@ -6,14 +6,19 @@ use std::io::{ErrorKind, Read, Write};
 
 use crate::stream::Stream;
 pub mod nar;
+pub mod store;
 pub mod stream;
+// TODO(akavel): just re-publish LocalStore type from it
+pub mod local_store;
 
-// TODO: test 'serve()' for simplified scenario with just cmd 2
+// TODO: implement LocalStore with SQLite
+// TODO: LATER: improve logging
+// TODO: LATER: improve error handling to more helpful
 
 // Based on NIX/src/nix-store/nix-store.cc, opServe()
 // Other references:
 // - NIX/src/libstore/legacy-ssh-store.cc
-pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<(), Error> {
+pub fn serve(store: &mut dyn store::Store, stream: &mut (impl Read + Write)) -> Result<(), Error> {
     let mut stream = Stream::new(stream);
     // Exchange initial greeting.
     stream.expect_u64(SERVE_MAGIC_1)?;
@@ -111,17 +116,6 @@ enum Command {
     // cmdAddToStoreNar = 9,
 }
 
-pub trait Store {
-    // TODO(akavel): try to make it accept both &["foo"] and vec![String::from("foo")]. See however:
-    // - https://stackoverflow.com/q/54225766
-    // and optionally:
-    // - https://github.com/rust-lang/rust/issues/22031
-    // - https://stackoverflow.com/a/41180422
-    // - https://stackoverflow.com/q/48734211
-    // TODO(akavel): return an Iterator<String>
-    fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String>;
-}
-
 struct NopHandler {}
 
 impl nar::Handler for NopHandler {
@@ -136,3 +130,14 @@ impl nar::Handler for NopHandler {
     }
     fn create_symlink(&mut self, _path: &str, _target: &str) {}
 }
+
+// TODO: LATER: create temporary GC root
+// TODO: LATER: if !repair && isValidPath(info.path) { return; }
+// TODO: deletePath(realPath);
+// TODO: restorePath(realPath, wrapperSource);
+// TODO: LATER: verify hash
+// TODO: LATER: verify size
+// TODO: LATER: autoGC();
+// TODO: LATER: canonicalisePathMetaData(realPath, -1);
+// TODO: LATER: optimisePath(realPath);
+// TODO: registerValidPath(info);
