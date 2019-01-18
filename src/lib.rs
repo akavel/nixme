@@ -52,18 +52,16 @@ pub fn serve(store: &mut dyn Store, stream: &mut (impl Read + Write)) -> Result<
                 // TODO(akavel): do we need to implement this, or is it ok to just fake it?
                 stream.write_u64(0)?;
             }
-            Some(Command::ImportPaths) => {
-                loop {
-                    let next = stream.read_u64()?;
-                    if next == 0 {
-                        break;
-                    } else if next != 1 {
-                        bail!("input doesn't look like something created by 'nix-store --export'");
-                    }
-                    let mut handler = NopHandler{};
-                    nar::parse(&mut stream, &mut handler)?;
+            Some(Command::ImportPaths) => loop {
+                let next = stream.read_u64()?;
+                if next == 0 {
+                    break;
+                } else if next != 1 {
+                    bail!("input doesn't look like something created by 'nix-store --export'");
                 }
-            }
+                let mut handler = NopHandler {};
+                nar::parse(&mut stream, &mut handler)?;
+            },
             _ => {
                 panic!("unknown cmd {}", cmd);
             }
@@ -100,10 +98,17 @@ pub trait Store {
     fn query_valid_paths(&mut self, paths: &mut dyn Iterator<Item = &str>) -> Vec<String>;
 }
 
-struct NopHandler { }
+struct NopHandler {}
 
 impl nar::Handler for NopHandler {
     fn create_directory(&mut self, _path: &str) {}
-    fn create_file(&mut self, _path: &str, _executable: bool, _size: u64, _contents: &mut impl Read) {}
+    fn create_file(
+        &mut self,
+        _path: &str,
+        _executable: bool,
+        _size: u64,
+        _contents: &mut impl Read,
+    ) {
+    }
     fn create_symlink(&mut self, _path: &str, _target: &str) {}
 }
