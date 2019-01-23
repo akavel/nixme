@@ -4,10 +4,11 @@ use failure;
 
 use crate::stream::{error::ProtocolError, error::Result, Stream};
 
+// Inflater? Unpacker? Materializer? Recipient? TreeBuilder? TreeWriter?
 pub trait Handler {
-    fn create_directory(&mut self, path: &str);
-    fn create_file(&mut self, path: &str, executable: bool, size: u64, contents: &mut impl Read);
-    fn create_symlink(&mut self, path: &str, target: &str);
+    fn create_directory(&mut self, path: &str) -> std::result::Result<(), failure::Error>;
+    fn create_file(&mut self, path: &str, executable: bool, size: u64, contents: &mut impl Read) -> std::result::Result<(), failure::Error>;
+    fn create_symlink(&mut self, path: &str, target: &str) -> std::result::Result<(), failure::Error>;
 }
 
 pub fn parse<R, H>(stream: &mut Stream<R>, handler: &mut H) -> Result<()>
@@ -66,7 +67,7 @@ where
         return protocol_error!("unexpected word, should be 'contents': {}", s);
     }
     let (size, mut blob_stream) = stream.read_blob()?;
-    handler.create_file(path, executable, size, &mut blob_stream);
+    handler.create_file(path, executable, size, &mut blob_stream)?;
     stream.expect_str(")")
 }
 
@@ -75,7 +76,7 @@ where
     R: Read,
     H: Handler,
 {
-    handler.create_directory(path);
+    handler.create_directory(path)?;
     let mut prev_name = "".to_string();
     loop {
         match stream.read_str_ascii(20)?.as_ref() {
@@ -104,7 +105,7 @@ where
     R: Read,
     H: Handler,
 {
-    handler.create_symlink(path, &stream.read_str_ascii(MAX_TARGET)?);
+    handler.create_symlink(path, &stream.read_str_ascii(MAX_TARGET)?)?;
     stream.expect_str(")")
 }
 
