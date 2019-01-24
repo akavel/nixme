@@ -98,6 +98,7 @@ enum LocalTreeError {
 mod tests {
     use std::io::Read;
     use std::path::{Path, PathBuf};
+    use walkdir::WalkDir;
     use crate::nar::Handler;
     use super::LocalTree;
 
@@ -114,10 +115,19 @@ asdom 12398
 ä"§Æẞ¢«»”alsd
 zażółć gęślą jaźń
 "#.as_bytes();
-        tree.create_file("/foo/data", false, buf.len() as u64, &mut buf).unwrap();
+        tree.create_file("/foo/data", false, 77, &mut buf).unwrap();
         let mut buf = "echo hello world".as_bytes();
-        tree.create_file("/foo/script.sh", true, buf.len() as u64, &mut buf).unwrap();
+        tree.create_file("/foo/script.sh", true, 16, &mut buf).unwrap();
         tree.create_symlink("/run", "foo/script.sh").unwrap();
+        assert_eq!("\n".to_owned()+&dumptree(&tmp_dir), r#"
+dir 
+dir boo
+dir foo
+dir foo/bar
+file foo/data = 77
+file foo/script.sh = 16
+link run -> foo/script.sh
+"#);
     }
 
     #[test]
@@ -143,5 +153,27 @@ zażółć gęślą jaźń
         use rand::distributions::Alphanumeric;
         let random: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
         PathBuf::from(std::env::temp_dir()).join("nixme-".to_string() + &random)
+    }
+
+    fn dumptree(root: &Path) -> String {
+        // TODO(akavel): check if file is executable
+        // TODO(akavel): check file & dir date
+        let mut buf = String::new();
+        for entry in WalkDir::new(root).sort_by(|a,b| a.file_name().cmp(b.file_name())) {
+            let entry = entry.unwrap();
+            let meta = entry.metadata().unwrap();
+            let path = entry.path().strip_prefix(root).unwrap().to_str().unwrap();
+            if entry.path_is_symlink() {
+                let target = std::fs::read_link(entry.path()).unwrap().to_str().unwrap().to_owned();
+                buf.push_str(&format!("link {} -> {}\n", path, target));
+            } else if meta.is_dir() {
+                buf.push_str(&format!("dir {}\n", path));
+            } else if meta.is_file() {
+                buf.push_str(&format!("file {} = {}\n", path, meta.len()));
+            } else {
+                buf.push_str(&format!("UNKNOWN {:#?}\n", entry));
+            }
+        }
+        buf
     }
 }
