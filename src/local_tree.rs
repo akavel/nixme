@@ -1,8 +1,8 @@
-use std::{fs, io, path::PathBuf};
-use std::os::unix::fs::PermissionsExt;
-use failure::{self, Fail};
 use crate::err::Result;
 use crate::nar;
+use failure::{self, Fail};
+use std::os::unix::fs::PermissionsExt;
+use std::{fs, io, path::PathBuf};
 
 pub struct LocalTree {
     pub root: PathBuf,
@@ -17,15 +17,27 @@ impl nar::Handler for LocalTree {
         Ok(())
     }
 
-    fn create_file(&mut self, path: &str, executable: bool, size: u64, contents: &mut impl io::Read) -> Result<()> {
-        let mut f = fs::OpenOptions::new().write(true).create_new(true).open(self.rooted(path)?)?;
+    fn create_file(
+        &mut self,
+        path: &str,
+        executable: bool,
+        size: u64,
+        contents: &mut impl io::Read,
+    ) -> Result<()> {
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(self.rooted(path)?)?;
         f.set_len(size)?;
         if executable {
             f.set_permissions(fs::Permissions::from_mode(0o777))?;
         }
         let n = io::copy(contents, &mut f)?;
         if n != size {
-            raise!(LocalTreeError::BadFileContentsLength { expected: size, actual: n });
+            raise!(LocalTreeError::BadFileContentsLength {
+                expected: size,
+                actual: n
+            });
         }
         Ok(())
     }
@@ -63,11 +75,11 @@ impl LocalTree {
 
 #[derive(Debug, Fail)]
 enum LocalTreeError {
-    #[fail(display = "bad file contents length, expected {}, got {}", expected, actual)]
-    BadFileContentsLength {
-        expected: u64,
-        actual: u64,
-    },
+    #[fail(
+        display = "bad file contents length, expected {}, got {}",
+        expected, actual
+    )]
+    BadFileContentsLength { expected: u64, actual: u64 },
     #[fail(display = "too many '..' segments")]
     TooManyDotDot,
 }

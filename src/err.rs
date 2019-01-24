@@ -6,5 +6,5 @@ pub type Result<T> = std::result::Result<T, failure::Error>;
 macro_rules! raise {
     ($e:expr) => {
         return Err(failure::Error::from($e));
-    }
+    };
 }

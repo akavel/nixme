@@ -134,7 +134,11 @@ impl nar::Handler for NopHandler {
     ) -> std::result::Result<(), failure::Error> {
         Ok(())
     }
-    fn create_symlink(&mut self, _path: &str, _target: &str) -> std::result::Result<(), failure::Error> {
+    fn create_symlink(
+        &mut self,
+        _path: &str,
+        _target: &str,
+    ) -> std::result::Result<(), failure::Error> {
         Ok(())
     }
 }
