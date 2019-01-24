@@ -4,12 +4,15 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::io::{ErrorKind, Read, Write};
 
+#[macro_use]
+pub mod err;
 use crate::stream::Stream;
 pub mod nar;
 pub mod store;
 pub mod stream;
 // TODO(akavel): just re-publish LocalStore type from it
 pub mod local_store;
+pub mod local_tree;
 
 // TODO: implement LocalStore with SQLite
 // TODO: LATER: improve logging
@@ -119,16 +122,21 @@ enum Command {
 struct NopHandler {}
 
 impl nar::Handler for NopHandler {
-    fn create_directory(&mut self, _path: &str) {}
+    fn create_directory(&mut self, _path: &str) -> std::result::Result<(), failure::Error> {
+        Ok(())
+    }
     fn create_file(
         &mut self,
         _path: &str,
         _executable: bool,
         _size: u64,
         _contents: &mut impl Read,
-    ) {
+    ) -> std::result::Result<(), failure::Error> {
+        Ok(())
     }
-    fn create_symlink(&mut self, _path: &str, _target: &str) {}
+    fn create_symlink(&mut self, _path: &str, _target: &str) -> std::result::Result<(), failure::Error> {
+        Ok(())
+    }
 }
 
 // TODO: LATER: create temporary GC root
