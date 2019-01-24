@@ -16,7 +16,8 @@ use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 use failure::{self, ResultExt};
 use std::io;
 
-use self::error::{ProtocolError, Result};
+use self::error::{ProtocolError};
+use crate::err::Result;
 
 // Based on source code of the std::fmt::format! macro.
 // TODO(akavel): can this be simplified? feels much overcomplicated, am I missing something?

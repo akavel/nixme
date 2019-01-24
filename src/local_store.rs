@@ -1,11 +1,9 @@
-use failure;
 use itertools::join;
 use rusqlite::{self as sql, types::ToSql};
 use std::collections::HashSet;
+use crate::err::Result;
 
 use crate::store::{self, Base};
-
-pub type Result<T> = std::result::Result<T, failure::Error>;
 
 pub struct LocalStore {
     pub paths: HashSet<String>,

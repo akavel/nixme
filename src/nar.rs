@@ -2,23 +2,24 @@ use std::io::Read;
 
 use failure;
 
-use crate::stream::{error::ProtocolError, error::Result, Stream};
+use crate::stream::{error::ProtocolError, Stream};
+use crate::err::Result;
 
 // Inflater? Unpacker? Materializer? Recipient? TreeBuilder? TreeWriter?
 pub trait Handler {
-    fn create_directory(&mut self, path: &str) -> std::result::Result<(), failure::Error>;
+    fn create_directory(&mut self, path: &str) -> Result<()>;
     fn create_file(
         &mut self,
         path: &str,
         executable: bool,
         size: u64,
         contents: &mut impl Read,
-    ) -> std::result::Result<(), failure::Error>;
+    ) -> Result<()>;
     fn create_symlink(
         &mut self,
         path: &str,
         target: &str,
-    ) -> std::result::Result<(), failure::Error>;
+    ) -> Result<()>;
 }
 
 pub fn parse<R, H>(stream: &mut Stream<R>, handler: &mut H) -> Result<()>

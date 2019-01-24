@@ -1,10 +1,9 @@
 use dirs;
-use failure::Error;
 use log;
 use simplelog;
 use std::{fs, io};
 
-use nixme::{self, local_store::LocalStore};
+use nixme::{self, local_store::LocalStore, err::Result};
 // use nixme;
 
 ////////
@@ -21,7 +20,7 @@ use nixme::{self, local_store::LocalStore};
 //   want to implement some parts of the Nix SQLite database at this point.
 // - LATER: implement full Nix SQLite database.
 
-fn main() -> std::result::Result<(), Error> {
+fn main() -> Result<()> {
     let mut log_file = dirs::data_local_dir().unwrap();
     log_file.push("nixme.log");
     simplelog::WriteLogger::init(
