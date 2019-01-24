@@ -30,6 +30,10 @@ echo hello world
 
 file /foo-x = 0
 
+link /ln-dir -> foo
+
+link /ln-file -> foo/script.sh
+
 file /qux = 0
 
 dir /zyx
@@ -63,7 +67,7 @@ impl nar::Handler for MockHandler {
 
     fn create_symlink(&mut self, path: &str, target: &str) -> Result<()> {
         // print!("link {} -> {}\n", path, target);
-        self.buf.push_str(&format!("link {} -> {}\n", path, target));
+        self.buf.push_str(&format!("link {} -> {}\n\n", path, target));
         Ok(())
     }
 }

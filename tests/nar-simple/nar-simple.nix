@@ -28,6 +28,10 @@ rec {
       echo hello world
       EOF
       chmod a+x $out/foo/script.sh
+
+      cd $out
+      ln -s foo/script.sh ln-file
+      ln -s foo ln-dir
     '';
   };
 }

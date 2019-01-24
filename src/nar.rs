@@ -116,6 +116,7 @@ where
     R: Read,
     H: Handler,
 {
+    stream.expect_str("target")?;
     handler.create_symlink(path, &stream.read_str_ascii(MAX_TARGET)?)?;
     stream.expect_str(")")
 }
