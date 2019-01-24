@@ -24,3 +24,4 @@ features = ["bundled"]
 mock-io = { git = "https://github.com/akavel/mock-io" }
 io-dump = { git = "https://github.com/carllerche/io-dump" }
 hex-literal = "0.1.1"
+rand = "0.6.4"

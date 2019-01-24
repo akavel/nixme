@@ -2,7 +2,7 @@ use crate::err::Result;
 use crate::nar;
 use failure::{self, Fail};
 use std::os::unix::fs::PermissionsExt;
-use std::{fs, io, path::PathBuf};
+use std::{fs, io, path::{Path, PathBuf}};
 
 pub struct LocalTree {
     pub root: PathBuf,
@@ -43,12 +43,18 @@ impl nar::Handler for LocalTree {
     }
 
     fn create_symlink(&mut self, path: &str, target: &str) -> Result<()> {
-        std::os::unix::fs::symlink(target, path)?;
+        std::os::unix::fs::symlink(target, self.rooted(path)?)?;
         Ok(())
     }
 }
 
 impl LocalTree {
+    pub fn new(root: &Path) -> Self {
+        Self{
+            root: root.to_path_buf(),
+        }
+    }
+
     /// Removes leading and trailing slashes and ".", and any repeated slashes, in a "/"-separated
     /// path. Simplifies any ".." by erasing preceding path segments, then prefixes path with
     /// self.root. Returns error in case there are any leading "..", or in case there are more ".."
@@ -69,7 +75,11 @@ impl LocalTree {
                 _ => cleaned.push(segment),
             }
         }
-        Ok(self.root.join(cleaned))
+        if cleaned == PathBuf::new() {
+            Ok(self.root.clone())
+        } else {
+            Ok(self.root.join(cleaned))
+        }
     }
 }
 
@@ -82,4 +92,56 @@ enum LocalTreeError {
     BadFileContentsLength { expected: u64, actual: u64 },
     #[fail(display = "too many '..' segments")]
     TooManyDotDot,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Read;
+    use std::path::{Path, PathBuf};
+    use crate::nar::Handler;
+    use super::LocalTree;
+
+    #[test]
+    fn simple_tree() {
+        let tmp_dir = tempname();
+        let mut tree = LocalTree::new(&tmp_dir);
+        tree.create_directory("").unwrap();
+        tree.create_directory("/foo").unwrap();
+        tree.create_directory("/foo/bar").unwrap();
+        tree.create_directory("/foo/bar/../../boo").unwrap(); // = "/boo"
+        let mut buf = r#"lasjdöaxnasd
+asdom 12398
+ä"§Æẞ¢«»”alsd
+zażółć gęślą jaźń
+"#.as_bytes();
+        tree.create_file("/foo/data", false, buf.len() as u64, &mut buf).unwrap();
+        let mut buf = "echo hello world".as_bytes();
+        tree.create_file("/foo/script.sh", true, buf.len() as u64, &mut buf).unwrap();
+        tree.create_symlink("/run", "foo/script.sh").unwrap();
+    }
+
+    #[test]
+    fn simple_file() {
+        let tmp = tempname();
+        let mut tree = LocalTree::new(&tmp);
+        let mut buf = "dummy".as_bytes();
+        tree.create_file("", false, buf.len() as u64, &mut buf).unwrap();
+    }
+
+    #[test]
+    fn bad_mkdir_order() {
+        let tmp_dir = tempname();
+        let mut tree = LocalTree::new(&tmp_dir);
+        tree.create_directory("").unwrap();
+        tree.create_directory("/fee").unwrap();
+        let result = tree.create_directory("/foo/fum");
+        assert!(result.is_err());
+    }
+
+    fn tempname() -> PathBuf {
+        use rand::{thread_rng, Rng};
+        use rand::distributions::Alphanumeric;
+        let random: String = thread_rng().sample_iter(&Alphanumeric).take(10).collect();
+        PathBuf::from(std::env::temp_dir()).join("nixme-".to_string() + &random)
+    }
 }
