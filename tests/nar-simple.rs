@@ -1,4 +1,4 @@
-use nixme::{nar, stream::Stream};
+use nixme::{nar, stream::Stream, err::Result};
 use std::fs::File;
 use std::io::Read;
 
@@ -42,12 +42,13 @@ struct MockHandler {
 }
 
 impl nar::Handler for MockHandler {
-    fn create_directory(&mut self, path: &str) {
+    fn create_directory(&mut self, path: &str) -> Result<()> {
         // print!("dir {}\n", path);
         self.buf.push_str(&format!("dir {}\n", path));
+        Ok(())
     }
 
-    fn create_file(&mut self, path: &str, executable: bool, size: u64, contents: &mut impl Read) {
+    fn create_file(&mut self, path: &str, executable: bool, size: u64, contents: &mut impl Read) -> Result<()> {
         if executable {
             // print!("exec {} = {}\n", path, size);
             self.buf.push_str(&format!("exec {} = {}\n", path, size));
@@ -57,10 +58,12 @@ impl nar::Handler for MockHandler {
         }
         contents.read_to_string(&mut self.buf).unwrap();
         self.buf.push_str("\n");
+        Ok(())
     }
 
-    fn create_symlink(&mut self, path: &str, target: &str) {
+    fn create_symlink(&mut self, path: &str, target: &str) -> Result<()> {
         // print!("link {} -> {}\n", path, target);
         self.buf.push_str(&format!("link {} -> {}\n", path, target));
+        Ok(())
     }
 }
