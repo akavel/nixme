@@ -1,5 +1,11 @@
 {.experimental: "codeReordering".}
 import strutils
+import streams
+
+type
+  Path = string
+  Handler = concept h
+    h.create_directory(Path)
 
 using
   r: Stream
@@ -10,6 +16,8 @@ proc parse_nar*(r, h) =
   r.expect "nix-archive-1" # NAR_VERSION_MAGIC
   parse_node(r, h, "")
 
+proc parse_directory(r, h, path)  # forward declaration seems required (because of recursive dependency?)
+
 proc parse_node(r, h, path) =
   r.expect "("
   r.expect "type"
@@ -18,7 +26,7 @@ proc parse_node(r, h, path) =
     of "regular":   parse_file(r, h, path)
     of "directory": parse_directory(r, h, path)
     of "symlink":   parse_symlink(r, h, path)
-    else:           raise "unexpected node type, should be 'regular'/'directory'/'symlink': '%s'" % other
+    else:           raise "unexpected node type, should be 'regular'/'directory'/'symlink': '%s'" % typ
 
 proc parse_file(r, h, path) =
   var word = r.read_str_ascii(20)
@@ -39,7 +47,7 @@ proc parse_directory(r, h, path) =
     let word = r.read_str_ascii(20)
     case word:
       of ")":     return
-      of "entry": # ok
+      of "entry": discard
       else:       raise "unexpected word in directory: '%s'" % word
     r.expect "("
     r.expect "name"
@@ -58,3 +66,6 @@ proc parse_symlink(r, h, path) =
   h.create_symlink(path, r.read_str_ascii(MAX_TARGET))
   r.expect ")"
 
+const
+  MAX_TARGET = 255  # FIXME(akavel): arbitrary value
+  MAX_NAME = 255    # FIXME(akavel): arbitrary value

@@ -1,5 +1,8 @@
 {.experimental: "codeReordering".}
 import nixmepkg/serve
+import nixmepkg/local_store
+import sets
+import streams
 
 # GOAL:
 #
@@ -12,9 +15,10 @@ import nixmepkg/serve
 # - Eventually, support GCing - this will probably require storing references and GC roots. Might
 #   want to implement some parts of the Nix SQLite database at this point.
 # - LATER: implement full Nix SQLite database.
-proc main():
-  var store = LocalStore(paths: ["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"])
-  serve(store, stdin, stdout)
+proc main() =
+  var store = LocalStore(paths: toSet(["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"]))
+  store.serve(newFileStream(stdin), newFileStream(stdout))
+  #serve.serve(store, stdin, stdout)
 
 when isMainModule:
   main()

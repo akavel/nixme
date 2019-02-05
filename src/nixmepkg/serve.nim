@@ -1,8 +1,15 @@
 {.experimental: "codeReordering".}
+import streams
+import nar
 
 # TODO: implement LocalStore with SQLite
 # TODO: LATER: implement logging
 # TODO: LATER: improve error handling to more helpful
+
+type
+  Store* {.explain.} = concept s
+    s.query_valid_paths(openArray[string]): seq[string]
+    # s.create_directory
 
 # Based on NIX/src/nix-store/nix-store.cc, opServe()
 # Other references:
@@ -15,43 +22,39 @@ proc serve*(store: Store; r, w: Stream) =
   # TODO(akavel): use version 0x205
   w.write(0x204'u64)
   w.flush()
-  let _client_version = r.read[uint64]()
+  discard r.read[uint64]() # client version
   while true:
     # FIXME(akavel): exit successfully on EOF
     let cmd = r.read[uint64]()
     case cmd:
       of 1: # Query Valid Paths
+        discard r.read[bool]() # TODO[LATER]: implement `lock` handling
+        discard r.read[bool]() # TODO[LATER]: implement `substitute` handling
         let
-          _lock = r.read[bool]()                  # TODO[LATER]: implement `lock` handling
-          _substitute = r.read[bool]()            # TODO[LATER]: implement `substitute` handling
           paths = r.read_strings_ascii(100, 300)  # FIXME(akavel): use some correct max lengths here
           response = store.query_valid_paths(paths)
         w.write(response)
         w.flush()
       of 2: # Query Path Infos
         # TODO(akavel): do we need to implement this cmd, or is it ok to just fake it?
-        let _paths = r.read_strings_ascii(100, 300)  # FIXME(akavel): use some correct max lengths here
+        discard r.read_strings_ascii(100, 300)  # paths  # FIXME(akavel): use some correct max lengths here
         w.write(0'u64)
         w.flush()
       of 4: # Import Paths
         while true:
           let next = r.read[uint64]()
           case next:
-            of 0:
-              break
-            of 1:
-              # ok
-            else:
-              raise "input doesn't look like something created by 'nix-store --export'"
-          nar.parse(r, store)
+            of 0: break
+            of 1: discard
+            else: raise "input doesn't look like something created by 'nix-store --export'"
+          parse_nar(r, store)
           # Magic number
           r.expect(0x4558_494e'u64)
           # FIXME(akavel): use some correct max lengths here
           const MAX_PATH = 255
-          let
-            _path = r.read_str_ascii(MAX_PATH)
-            _references = r.read_strings_ascii(100, MAX_PATH)
-            _deriver = r.read_str_ascii(MAX_PATH)
+          discard r.read_str_ascii(MAX_PATH) # path
+          discard r.read_strings_ascii(100, MAX_PATH) # references
+          discard r.read_str_ascii(MAX_PATH) # deriver
           # Ignore optional legacy signature.
           if r.read[uint64]() == 1:
             discard r.read_str_ascii(MAX_PATH)
