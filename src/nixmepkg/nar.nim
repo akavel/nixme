@@ -1,14 +1,17 @@
 {.experimental: "codeReordering".}
 import strutils
+import nix_stream
 import streams
+import ospaths
 
 type
   Path = string
   Handler = concept h
     h.create_directory(Path)
+    h.create_file(Path, bool, uint64, Stream)
 
 using
-  r: Stream
+  r: NixStream
   h: Handler
   path: Path
 
@@ -26,7 +29,7 @@ proc parse_node(r, h, path) =
     of "regular":   parse_file(r, h, path)
     of "directory": parse_directory(r, h, path)
     of "symlink":   parse_symlink(r, h, path)
-    else:           raise "unexpected node type, should be 'regular'/'directory'/'symlink': '%s'" % typ
+    else:           raise newException(ProtocolError, "unexpected node type, should be 'regular'/'directory'/'symlink': '$#'" % typ)
 
 proc parse_file(r, h, path) =
   var word = r.read_str_ascii(20)
@@ -35,7 +38,7 @@ proc parse_file(r, h, path) =
     r.expect ""
     word = r.read_str_ascii(20)
   if word != "contents":
-    raise "unexpected word, should be 'contents': %s" % word
+    raise newException(ProtocolError, "unexpected word, should be 'contents', got: '$#'" % word)
   let (size, blob_stream) = r.read_blob()
   h.create_file(path, executable, size, blob_stream)
   r.expect ")"
@@ -48,16 +51,18 @@ proc parse_directory(r, h, path) =
     case word:
       of ")":     return
       of "entry": discard
-      else:       raise "unexpected word in directory: '%s'" % word
+      else:       raise newException(ProtocolError, "unexpected word in directory: '$#'" % word)
     r.expect "("
     r.expect "name"
     let name = r.read_str_ascii(MAX_NAME)
     if name == "" or name == "." or name == ".." or name.contains('/') or name.contains('\0'):
-      raise "node name contains invalid characters: '%s'" % name
+      raise newException(ProtocolError, "node name contains invalid characters: '$#'" % name)
     if name <= prev_name:
-      raise "node name not sorted: '%s' <= '%s'" % (name, prev_name)
+      raise newException(ProtocolError, "node name not sorted: '$#' <= '$#'" % [name, prev_name])
     r.expect "node"
-    parse_node(r, h, path / name)
+    let subpath = path / name
+    parse_node(r, h, subpath)
+    # parse_node(r, h, path / name)
     prev_name = name
     r.expect ")"
 

@@ -14,7 +14,10 @@ type
 # Based on NIX/src/nix-store/nix-store.cc, opServe()
 # Other references:
 # - NIX/src/libstore/legacy-ssh-store.cc
-proc serve*(store: Store; r, w: NixStream) =
+proc serve*(store: Store; rs, ws: Stream) =
+  let
+    r = wrap_nix_stream(rs)
+    w = wrap_nix_stream(ws)
   # Exchange initial greeting/handshake (magic numbers)
   r.expect(0x390c_9deb'u64)
   w.write(0x5452_eecb'u64)
@@ -22,14 +25,14 @@ proc serve*(store: Store; r, w: NixStream) =
   # TODO(akavel): use version 0x205
   w.write(0x204'u64)
   w.flush()
-  discard r.read[uint64]() # client version
+  discard r.read_uint64() # client version
   while true:
     # FIXME(akavel): exit successfully on EOF
-    let cmd = r.read[uint64]()
-    case cmd:
+    let cmd = r.read_uint64()
+    case cmd.int:
       of 1: # Query Valid Paths
-        discard r.read[bool]() # TODO[LATER]: implement `lock` handling
-        discard r.read[bool]() # TODO[LATER]: implement `substitute` handling
+        discard r.read_bool() # TODO[LATER]: implement `lock` handling
+        discard r.read_bool() # TODO[LATER]: implement `substitute` handling
         let
           paths = r.read_strings_ascii(100, 300)  # FIXME(akavel): use some correct max lengths here
           response = store.query_valid_paths(paths)
@@ -42,11 +45,11 @@ proc serve*(store: Store; r, w: NixStream) =
         w.flush()
       of 4: # Import Paths
         while true:
-          let next = r.read[uint64]()
-          case next:
+          let next = r.read_uint64()
+          case next.int:
             of 0: break
             of 1: discard
-            else: raise "input doesn't look like something created by 'nix-store --export'"
+            else: raise newException(ProtocolError, "input doesn't look like something created by 'nix-store --export'")
           parse_nar(r, store)
           # Magic number
           r.expect(0x4558_494e'u64)
@@ -56,7 +59,7 @@ proc serve*(store: Store; r, w: NixStream) =
           discard r.read_strings_ascii(100, MAX_PATH) # references
           discard r.read_str_ascii(MAX_PATH) # deriver
           # Ignore optional legacy signature.
-          if r.read[uint64]() == 1:
+          if r.read_uint64() == 1:
             discard r.read_str_ascii(MAX_PATH)
           w.write(1'u64) # indicate success
           w.flush()
