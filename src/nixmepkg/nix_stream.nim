@@ -7,6 +7,7 @@
 
 {.experimental: "codeReordering".}
 import streams
+import strutils
 
 type
   NixStream = ref object
@@ -27,22 +28,22 @@ proc write*(s; v: uint64) =
     chr(v shr 40 and 0xff),
     chr(v shr 32 and 0xff),
     chr(v shr 24 and 0xff),
-    chr(v shr 16 and 0xff,
+    chr(v shr 16 and 0xff),
     chr(v shr 8 and 0xff),
     chr(v and 0xff)]
   s.base.write(buf)
 
 proc write*(s; v: string) =
-  s.write(v.len)
+  s.write(uint64(v.len))
   # FIXME(akavel): SUPER IMPORTANT: what encoding is used by Nix for strings in the protocol?
   s.base.write(v)
-  s.base.write(' '.repeat(pad(v.len)))
+  s.base.write(' '.repeat(pad(uint64(v.len))))
 
 proc write*(s; v: bool) =
   s.write(if v: 1 else: 0)
 
 proc write*(s; v: openArray[string]) =
-  s.write(v.len)
+  s.write(uint64(v.len))
   for str in v:
     s.write(str)
 
@@ -55,25 +56,35 @@ proc write*(s; v: openArray[string]) =
 
 proc read_uint64*(s): uint64 =
   let buf = s.base.readStr(8)
-  return buf[0] * 0x01000000_00000000 +
-         buf[1] * 0x00010000_00000000 +
-         buf[2] * 0x00000100_00000000 +
-         buf[3] * 0x00000001_00000000 +
-         buf[4] * 0x00000000_01000000 +
-         buf[5] * 0x00000000_00010000 +
-         buf[6] * 0x00000000_00000100 +
-         buf[7] * 0x00000000_00000001
+  return buf[0].uint64 * 0x01000000_00000000'u64 +
+         buf[1].uint64 * 0x00010000_00000000'u64 +
+         buf[2].uint64 * 0x00000100_00000000'u64 +
+         buf[3].uint64 * 0x00000001_00000000'u64 +
+         buf[4].uint64 * 0x00000000_01000000'u64 +
+         buf[5].uint64 * 0x00000000_00010000'u64 +
+         buf[6].uint64 * 0x00000000_00000100'u64 +
+         buf[7].uint64 * 0x00000000_00000001'u64
 
 proc read_blob*(s): (uint64, Stream) =
   let n = s.read_uint64()
   let blob = new(Blob)
   blob.parent = s
   blob.n = n
-  blob.padding = pad(n)
+  blob.padding = pad(n).uint8
   blob.readDataImpl = blobReadData
   blob.atEndImpl = blobAtEnd
   blob.closeImpl = blobClose
   return (n, blob)
+
+proc expect*(s; want: uint64) =
+  let have = s.read_uint64()
+  if have != want:
+    raise "expected $# (hex $#), got $# (hex $#)" % [want, toHex(want), have, toHex(have)]
+
+proc expect*(s; want: string) =
+  let have = s.read_str_ascii(want.len)
+  if have != want:
+    raise "expected '$#', got '$#'" % [want, have]
 
 type
   Blob = ref object of Stream
@@ -83,23 +94,24 @@ type
 
 proc blobReadData(s: Stream, buffer: pointer, bufLen: int): int =
   let blob = Blob(s)
-  let n = if blob.n < bufLen: blob.n else: bufLen
-  result = blob.parent.base.readDataImpl(buffer, n)
-  blob.n -= result
+  let n = if blob.n < bufLen.uint64: blob.n.int else: bufLen
+  result = blob.parent.base.readData(buffer, n)
+  blob.n -= result.uint64
 
 proc blobAtEnd(s: Stream): bool =
   return Blob(s).n <= 0
 
 proc blobClose(s: Stream) =
   let blob = Blob(s)
-  let n = blob.n + blob.padding
-  if n > 0:
+  if blob.n > 0'u64:
+    # TODO(akavel): optimize to avoid allocating a string
+    discard s.readAll()
+  if blob.padding > 0'u8:
     # TODO(akavel): is it safe to discard the result, or do we have to verify length?
-    discard blob.parent.base.readStr(n)
-    blob.n = 0
+    discard blob.parent.base.readStr(blob.padding.int)
     blob.padding = 0
 
 # Internal function, used to calculate length of 0-padding for byte slices in Nix protocol.
 # n=1 => pad=7;  n=2 => pad=6;  n=7 => pad=1;  n=8 => pad=0
 func pad(n: uint64): uint64 =
-    (8 - n % 8) % 8
+    (8'u64 - n mod 8) mod 8

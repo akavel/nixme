@@ -2,7 +2,7 @@
 import sets
 
 type
-  Path = string
+  # Path = string
   LocalStore* = ref object
     paths*: HashSet[string]
     # root: Path

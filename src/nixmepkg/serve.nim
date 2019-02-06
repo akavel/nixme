@@ -1,6 +1,7 @@
 {.experimental: "codeReordering".}
 import streams
 import nar
+import nix_stream
 
 # TODO: implement LocalStore with SQLite
 # TODO: LATER: implement logging
@@ -8,13 +9,12 @@ import nar
 
 type
   Store* {.explain.} = concept s
-    s.query_valid_paths(openArray[string]): seq[string]
-    # s.create_directory
+    s.query_valid_paths(openArray[string]) is seq[string]
 
 # Based on NIX/src/nix-store/nix-store.cc, opServe()
 # Other references:
 # - NIX/src/libstore/legacy-ssh-store.cc
-proc serve*(store: Store; r, w: Stream) =
+proc serve*(store: Store; r, w: NixStream) =
   # Exchange initial greeting/handshake (magic numbers)
   r.expect(0x390c_9deb'u64)
   w.write(0x5452_eecb'u64)
