@@ -1,5 +1,6 @@
 {.experimental: "codeReordering".}
 import sets
+import nar
 import streams
 
 type
@@ -16,8 +17,9 @@ proc query_valid_paths*(s; paths: openArray[string]): seq[string] =
     if s.paths.contains(p):
       result.add(p)
 
-proc create_directory*(s; path: string) =
-  discard
-
-proc create_file*(s; path: string, executable: bool, size: uint64, contents: Stream) =
-  discard
+proc nar_handler*(s): Handler =
+  let h = new(Handler)
+  h.create_directory = proc(path: string) =
+    discard
+  h.create_file = proc(path: string, executable: bool, size: uint64, contents: Stream) =
+    discard

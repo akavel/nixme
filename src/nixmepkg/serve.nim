@@ -1,5 +1,6 @@
 {.experimental: "codeReordering".}
 import streams
+import strutils
 import nar
 import nix_stream
 
@@ -8,8 +9,9 @@ import nix_stream
 # TODO: LATER: improve error handling to more helpful
 
 type
-  Store* {.explain.} = concept s
+  Store* = concept s
     s.query_valid_paths(openArray[string]) is seq[string]
+    s.nar_handler() is Handler
 
 # Based on NIX/src/nix-store/nix-store.cc, opServe()
 # Other references:
@@ -50,7 +52,7 @@ proc serve*(store: Store; rs, ws: Stream) =
             of 0: break
             of 1: discard
             else: raise newException(ProtocolError, "input doesn't look like something created by 'nix-store --export'")
-          parse_nar(r, store)
+          parse_nar(r, store.nar_handler())
           # Magic number
           r.expect(0x4558_494e'u64)
           # FIXME(akavel): use some correct max lengths here
@@ -63,6 +65,8 @@ proc serve*(store: Store; rs, ws: Stream) =
             discard r.read_str_ascii(MAX_PATH)
           w.write(1'u64) # indicate success
           w.flush()
+      else:
+        raise newException(ProtocolError, "unknown cmd: $#" % $cmd)
 
 # TODO: LATER: create temporary GC root
 # TODO: LATER: if !repair && isValidPath(info.path) { return; }

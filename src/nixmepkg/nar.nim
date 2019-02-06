@@ -5,15 +5,15 @@ import streams
 import ospaths
 
 type
-  Path = string
-  Handler = concept h
-    h.create_directory(Path)
-    h.create_file(Path, bool, uint64, Stream)
+  Handler* = ref object
+    create_directory*: proc(path: string)
+    create_file*: proc(path: string, executable: bool, size: uint64, contents: Stream)
+    create_symlink*: proc(path: string, target: string)
 
 using
   r: NixStream
   h: Handler
-  path: Path
+  path: string
 
 proc parse_nar*(r, h) =
   r.expect "nix-archive-1" # NAR_VERSION_MAGIC
