@@ -15,6 +15,7 @@ using
   h: Handler
   path: string
 
+# TODO(akavel): consider changing this to a parser/iterator returning "nodes" (variant type)
 proc parse_nar*(r, h) =
   r.expect "nix-archive-1" # NAR_VERSION_MAGIC
   parse_node(r, h, "")
