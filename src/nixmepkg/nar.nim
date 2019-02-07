@@ -24,21 +24,22 @@ proc parse_directory(r, h, path)  # forward declaration seems required (because 
 proc parse_node(r, h, path) =
   r.expect "("
   r.expect "type"
-  let typ = r.read_str_ascii(20)
-  case typ:
+  case (let typ = r.read_str_ascii(20); typ):
     of "regular":   parse_file(r, h, path)
     of "directory": parse_directory(r, h, path)
     of "symlink":   parse_symlink(r, h, path)
     else:           raise newException(ProtocolError, "unexpected node type, should be 'regular'/'directory'/'symlink': '$#'" % typ)
 
 proc parse_file(r, h, path) =
-  var word = r.read_str_ascii(20)
-  let executable = word == "executable"
-  if executable:
-    r.expect ""
-    word = r.read_str_ascii(20)
-  if word != "contents":
-    raise newException(ProtocolError, "unexpected word, should be 'contents', got: '$#'" % word)
+  let executable = case (let word = r.read_str_ascii(20); word)
+    of "executable":
+      r.expect ""
+      r.expect "contents"
+      true
+    of "contents":
+      false
+    else:
+      raise newException(ProtocolError, "unexpected word, should be 'contents'/'executable', got: '$#'" % word)
   let (size, blob_stream) = r.read_blob()
   h.create_file(path, executable, size, blob_stream)
   r.expect ")"
@@ -47,8 +48,7 @@ proc parse_directory(r, h, path) =
   h.create_directory(path)
   var prev_name = ""
   while true:
-    let word = r.read_str_ascii(20)
-    case word:
+    case (let word = r.read_str_ascii(20); word):
       of ")":     return
       of "entry": discard
       else:       raise newException(ProtocolError, "unexpected word in directory: '$#'" % word)

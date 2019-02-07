@@ -30,8 +30,7 @@ proc serve*(store: Store; rs, ws: Stream) =
   discard r.read_uint64() # client version
   while true:
     # FIXME(akavel): exit successfully on EOF
-    let cmd = r.read_uint64()
-    case cmd.int:
+    case (let cmd = r.read_uint64(); cmd.int):
       of 1: # Query Valid Paths
         discard r.read_bool() # TODO[LATER]: implement `lock` handling
         discard r.read_bool() # TODO[LATER]: implement `substitute` handling
@@ -47,8 +46,7 @@ proc serve*(store: Store; rs, ws: Stream) =
         w.flush()
       of 4: # Import Paths
         while true:
-          let next = r.read_uint64()
-          case next.int:
+          case (let next = r.read_uint64(); next.int):
             of 0: break
             of 1: discard
             else: raise newException(ProtocolError, "input doesn't look like something created by 'nix-store --export'")
