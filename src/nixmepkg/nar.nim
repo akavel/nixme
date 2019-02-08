@@ -25,14 +25,14 @@ proc parse_directory(r, h, path)  # forward declaration seems required (because 
 proc parse_node(r, h, path) =
   r.expect "("
   r.expect "type"
-  case (let typ = r.read_str_ascii(20); typ):
+  case (let typ = r.read_word(); typ):
     of "regular":   parse_file(r, h, path)
     of "directory": parse_directory(r, h, path)
     of "symlink":   parse_symlink(r, h, path)
     else:           raise newException(ProtocolError, "unexpected node type, should be 'regular'/'directory'/'symlink': '$#'" % typ)
 
 proc parse_file(r, h, path) =
-  let executable = case (let word = r.read_str_ascii(20); word)
+  let executable = case (let word = r.read_word(); word)
     of "executable":
       r.expect ""
       r.expect "contents"
@@ -49,7 +49,7 @@ proc parse_directory(r, h, path) =
   h.create_directory(path)
   var prev_name = ""
   while true:
-    case (let word = r.read_str_ascii(20); word):
+    case (let word = r.read_word(); word):
       of ")":     return
       of "entry": discard
       else:       raise newException(ProtocolError, "unexpected word in directory: '$#'" % word)
@@ -71,6 +71,12 @@ proc parse_symlink(r, h, path) =
   r.expect "target"
   h.create_symlink(path, r.read_str_ascii(MAX_TARGET))
   r.expect ")"
+
+proc read_word(s: NixStream): string =
+  let (n, blob) = s.read_blob()
+  if n > 20'u64:
+    raise newException(ProtocolError, "expected a short string, got number/string of length: $#" % $n)
+  return blob.readStr(n.int)
 
 const
   MAX_TARGET = 255  # FIXME(akavel): arbitrary value

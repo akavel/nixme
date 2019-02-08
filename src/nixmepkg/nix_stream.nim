@@ -118,10 +118,13 @@ proc read_strings_ascii*(s; maxn, maxlen: int): seq[string] =
 proc expect*(s; want: uint64) =
   let have = s.read_uint64()
   if have != want:
-    raise newException(ProtocolError, "expected $# (hex $#), got $# (hex $#)" % [$want, toHex(want), $have, toHex(have)])
+    raise newException(ExpectationError, "expected $# (hex $#), got $# (hex $#)" % [$want, toHex(want), $have, toHex(have)])
 
 proc expect*(s; want: string) =
-  let have = s.read_str_ascii(want.len)
+  let (n, blob) = s.read_blob()
+  if n != want.len.uint64:
+    raise newException(ExpectationError, "expected string of length $#, got length $#" % [$want.len, $n])
+  let have = blob.readAll()
   if have != want:
     raise newException(ProtocolError, "expected '$#', got '$#'" % [$want, $have])
 
