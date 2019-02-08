@@ -4,7 +4,7 @@ import nix_stream
 import streams
 
 type
-  Handler* = ref object
+  Handler* = ref object of RootObj
     create_directory*: proc(path: string)
     create_file*: proc(path: string, executable: bool, size: uint64, contents: Stream)
     create_symlink*: proc(path: string, target: string)

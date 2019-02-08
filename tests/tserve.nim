@@ -64,3 +64,8 @@ cb ee 52 54 00 00 00 00 04 02 00 00 00 00 00 00   # ..RT............ |
     store.serve(session, session)
     check session.atEnd
 
+  test "pkg import iodump":
+    let session = transcript(openFileStream("tests/transcripts/c00-import.iodump"))
+    let store = LocalStore(paths: ["/nix/store/g2yk54hifqlsjiha3szr4q3ccmdzyrdv-glibc-2.27"].toSet)
+    store.serve(session, session)
+    check session.atEnd

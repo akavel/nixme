@@ -23,3 +23,6 @@ proc nar_handler*(s): Handler =
     discard
   h.create_file = proc(path: string, executable: bool, size: uint64, contents: Stream) =
     discard
+  h.create_symlink = proc(path: string; target: string) =
+    discard
+  return h
