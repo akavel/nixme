@@ -54,3 +54,13 @@ cb ee 52 54 00 00 00 00 04 02 00 00 00 00 00 00   # ..RT............ |
     store.serve(session, session)
     check session.atEnd
 
+  test "existing-pkg.iodump":
+    let session = transcript(openFileStream("tests/transcripts/a01-existing-pkg.iodump"))
+    let store = LocalStore(paths: [
+        "/nix/store/2kcrj1ksd2a14bm5sky182fv2xwfhfap-glibc-2.26-131",
+        "/nix/store/aakgkcvw6j54zg38zrn1w00sgxx0zj8b-xz-5.2.3-bin",
+        "/nix/store/chf54cl12ifswf6swh7kxpif477drihi-xz-5.2.3",
+        ].toSet)
+    store.serve(session, session)
+    check session.atEnd
+
