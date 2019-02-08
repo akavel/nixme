@@ -28,14 +28,14 @@ proc flush*(s) = s.base.flush()
 
 proc write*(s; v: uint64) =
   let buf = [
-    chr(v shr 56 and 0xff),
-    chr(v shr 48 and 0xff),
-    chr(v shr 40 and 0xff),
-    chr(v shr 32 and 0xff),
-    chr(v shr 24 and 0xff),
-    chr(v shr 16 and 0xff),
+    chr(v and 0xff),
     chr(v shr 8 and 0xff),
-    chr(v and 0xff)]
+    chr(v shr 16 and 0xff),
+    chr(v shr 24 and 0xff),
+    chr(v shr 32 and 0xff),
+    chr(v shr 40 and 0xff),
+    chr(v shr 48 and 0xff),
+    chr(v shr 56 and 0xff)]
   s.base.write(buf)
 
 proc write*(s; v: string) =
@@ -62,14 +62,14 @@ proc write*(s; v: openArray[string]) =
 proc read_uint64*(s): uint64 =
   s.skip()
   let buf = s.base.readStr(8)
-  return buf[0].uint64 * 0x01000000_00000000'u64 +
-         buf[1].uint64 * 0x00010000_00000000'u64 +
-         buf[2].uint64 * 0x00000100_00000000'u64 +
-         buf[3].uint64 * 0x00000001_00000000'u64 +
-         buf[4].uint64 * 0x00000000_01000000'u64 +
-         buf[5].uint64 * 0x00000000_00010000'u64 +
-         buf[6].uint64 * 0x00000000_00000100'u64 +
-         buf[7].uint64 * 0x00000000_00000001'u64
+  return buf[0].uint64 * 0x00000000_00000001'u64 +
+         buf[1].uint64 * 0x00000000_00000100'u64 +
+         buf[2].uint64 * 0x00000000_00010000'u64 +
+         buf[3].uint64 * 0x00000000_01000000'u64 +
+         buf[4].uint64 * 0x00000001_00000000'u64 +
+         buf[5].uint64 * 0x00000100_00000000'u64 +
+         buf[6].uint64 * 0x00010000_00000000'u64 +
+         buf[7].uint64 * 0x01000000_00000000'u64
 
 proc skip(s) =
   while s.to_skip[] > 0'u64:
