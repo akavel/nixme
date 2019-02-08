@@ -84,6 +84,18 @@ suite "write methods":
     check written_string("A").toHex == strip_space"""
         01 00 00 00  00 00 00 00
         41 00 00 00  00 00 00 00"""
+    check written_string("AB").toHex == strip_space"""
+        02 00 00 00  00 00 00 00
+        41 42 00 00  00 00 00 00"""
+    check written_string("AAAABBBB").toHex == strip_space"""
+        08 00 00 00  00 00 00 00
+        41 41 41 41  42 42 42 42"""
+    check written_string("AAAABBBBC").toHex == strip_space"""
+        09 00 00 00  00 00 00 00
+        41 41 41 41  42 42 42 42
+        43 00 00 00  00 00 00 00"""
+    check written_string("").toHex == strip_space"""
+        00 00 00 00  00 00 00 00"""
 
 
 proc written_string(s: string): string =
