@@ -29,7 +29,9 @@ proc serve*(store: Store; rs, ws: Stream) =
   w.flush()
   discard r.read_uint64() # client version
   while true:
-    # FIXME(akavel): exit successfully on EOF
+    # TODO(akavel): is below line OK to exit successfully on EOF?
+    if r.atEnd:
+      return
     case (let cmd = r.read_uint64(); cmd.int):
       of 1: # Query Valid Paths
         discard r.read_bool() # TODO[LATER]: implement `lock` handling

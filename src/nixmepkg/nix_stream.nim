@@ -24,6 +24,9 @@ proc wrap_nix_stream*(stream: Stream): NixStream =
 using
   s: NixStream
 
+proc atEnd*(s): bool =
+  return s.base.atEnd()
+
 proc flush*(s) = s.base.flush()
 
 proc write*(s; v: uint64) =
