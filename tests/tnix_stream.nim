@@ -1,5 +1,7 @@
+{.experimental: "codeReordering".}
 import unittest
 import streams
+import strutils
 import nixmepkg/nix_stream
 
 suite "basic read primitives":
@@ -66,3 +68,30 @@ suite "basic read primitives":
     check blob.readStr(3) == "abc"
     # verify that a subsequent value reads correctly
     check nix.read_uint64() == 0xbeeffeed_abbababe'u64
+
+# TODO(akavel): test that read_str_ascii rejects "unsafe" characters
+# TODO(akavel): test read_strings_ascii
+
+suite "write methods":
+  test "write[uint64] is little-endian":
+    let
+      buf = newStringStream("")
+      nix = wrap_nix_stream(buf)
+    nix.write(0x01020304_05060708'u64)
+    check buf.data == "\x08\x07\x06\x05\x04\x03\x02\x01"
+
+  test "write[string]":
+    check written_string("A").toHex == strip_space"""
+        01 00 00 00  00 00 00 00
+        41 00 00 00  00 00 00 00"""
+
+
+proc written_string(s: string): string =
+  let
+    buf = newStringStream("")
+    nix = wrap_nix_stream(buf)
+  nix.write(s)
+  return buf.data
+
+proc strip_space(s: string): string =
+  return s.multiReplace(("\n", ""), (" ", ""))

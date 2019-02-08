@@ -42,7 +42,7 @@ proc write*(s; v: string) =
   s.write(uint64(v.len))
   # FIXME(akavel): SUPER IMPORTANT: what encoding is used by Nix for strings in the protocol?
   s.base.write(v)
-  s.base.write(' '.repeat(pad(uint64(v.len))))
+  s.base.write('\x00'.repeat(pad(uint64(v.len))))
 
 proc write*(s; v: bool) =
   s.write(if v: 1 else: 0)
