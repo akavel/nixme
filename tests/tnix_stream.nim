@@ -54,3 +54,15 @@ suite "basic read primitives":
     # verify that a subsequent value reads correctly
     check nix.read_uint64() == 0xbeeffeed_abbababe'u64
 
+  test "read_blob skips unread content":
+    let
+      input = newStringStream("\x07\x00\x00\x00\x00\x00\x00\x00" &
+        "abcdefg0" &
+        "\xbe\xba\xba\xab\xed\xfe\xef\xbe")
+      nix = wrap_nix_stream(input)
+    let (n, blob) = nix.read_blob()
+    check n == 7
+    # TODO(akavel): verify that below partial read doesn't do an over-eager, buffered read...
+    check blob.readStr(3) == "abc"
+    # verify that a subsequent value reads correctly
+    check nix.read_uint64() == 0xbeeffeed_abbababe'u64
