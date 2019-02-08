@@ -17,7 +17,7 @@ suite "basic read primitives":
       output = nix.read_uint64()
     check output == 0xfffefdfc_fbfaf9f1'u64
 
-  test "two read_uint64 in sequence":
+  test "read_uint64 twice in a sequence":
     let
       input = newStringStream("\x01\x02\x03\x04\x05\x06\x07\x08" &
         "\x11\x12\x13\x14\x15\x16\x17\x18")
@@ -25,13 +25,32 @@ suite "basic read primitives":
     check nix.read_uint64() == 0x01020304_05060708'u64
     check nix.read_uint64() == 0x11121314_15161718'u64
 
-  test "read_str_ascii padding":
+  test "read_str_ascii internal padding":
     let
       input = newStringStream("\x00\x00\x00\x00\x00\x00\x00\x03" &
         "abc45678" &
         "\xbe\xef\xfe\xed\xab\xba\xba\xbe")
       nix = wrap_nix_stream(input)
     check nix.read_str_ascii(20) == "abc"
+    # verify that a subsequent value reads correctly
+    check nix.read_uint64() == 0xbeeffeed_abbababe'u64
+
+  test "read_str_ascii empty string":
+    let
+      input = newStringStream("\x00\x00\x00\x00\x00\x00\x00\x00" &
+        "\xbe\xef\xfe\xed\xab\xba\xba\xbe")
+      nix = wrap_nix_stream(input)
+    check nix.read_str_ascii(20) == ""
+    # verify that a subsequent value reads correctly
+    check nix.read_uint64() == 0xbeeffeed_abbababe'u64
+
+  test "read_str_ascii with no padding required":
+    let
+      input = newStringStream("\x00\x00\x00\x00\x00\x00\x00\x08" &
+        "abcdefgh" &
+        "\xbe\xef\xfe\xed\xab\xba\xba\xbe")
+      nix = wrap_nix_stream(input)
+    check nix.read_str_ascii(20) == "abcdefgh"
     # verify that a subsequent value reads correctly
     check nix.read_uint64() == 0xbeeffeed_abbababe'u64
 
