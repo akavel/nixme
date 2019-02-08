@@ -62,6 +62,8 @@ proc write*(s; v: openArray[string]) =
 proc read_uint64*(s): uint64 =
   s.skip()
   let buf = s.base.readStr(8)
+  if buf.len < 8:
+    raise newException(ProtocolError, "expected 8 bytes for uint64, found only $# (hex $#)" % [$buf.len, toHex(buf)])
   return buf[0].uint64 * 0x00000000_00000001'u64 +
          buf[1].uint64 * 0x00000000_00000100'u64 +
          buf[2].uint64 * 0x00000000_00010000'u64 +

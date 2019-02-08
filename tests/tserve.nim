@@ -1,7 +1,9 @@
 {.experimental: "codeReordering".}
 import unittest
+import streams
 import transcript
 import nixmepkg/serve
+import nixmepkg/local_store
 
 suite "transcripts":
   test "handshake, then EOF":
