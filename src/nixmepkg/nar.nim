@@ -2,7 +2,6 @@
 import strutils
 import nix_stream
 import streams
-import ospaths
 
 type
   Handler* = ref object
@@ -61,9 +60,9 @@ proc parse_directory(r, h, path) =
     if name <= prev_name:
       raise newException(ProtocolError, "node name not sorted: '$#' <= '$#'" % [name, prev_name])
     r.expect "node"
-    let subpath = path / name
+    let subpath = if path == "": name
+                  else:          path & "/" & name
     parse_node(r, h, subpath)
-    # parse_node(r, h, path / name)
     prev_name = name
     r.expect ")"
 
