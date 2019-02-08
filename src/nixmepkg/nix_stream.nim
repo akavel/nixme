@@ -25,6 +25,7 @@ using
   s: NixStream
 
 proc atEnd*(s): bool =
+  s.skip()
   return s.base.atEnd()
 
 proc flush*(s) = s.base.flush()
